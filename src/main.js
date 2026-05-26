@@ -1,9 +1,23 @@
 import { slideRecommend } from './slide_recommend.js'
+import {
+  buildKnowledgeGraph,
+  cleanQuery,
+  resolvePlayableVideo,
+  updateWatchProgress
+} from './knowledge_graph.js'
 
 const app = document.querySelector('#app')
 const STORAGE_KEY = 'tikcanvas.savedCanvases'
-const DEFAULT_CANVAS_QUERY = 'Codex 学习路线图'
-const exampleQueries = ['帮我整理 Codex 的学习路线图', '帮我生成 Claude 的知识画布']
+const WATCH_PROGRESS_KEY = 'tikcanvas.watchProgress'
+const TAG_PREFERENCES_KEY = 'tikcanvas.tagPreferences'
+const DEFAULT_CANVAS_QUERY = '帮我生成 Claude 的知识画布'
+const exampleQueries = ['帮我生成 Claude 的知识画布', 'Claude API Agent 自动化', 'Codex Agent 工程协作', 'Claude 到 IoT']
+
+const defaultTagPreferences = {
+  activeTags: ['Claude', 'API', 'Agent'],
+  disabledTags: [],
+  customTags: []
+}
 
 const state = {
   view: 'canvas',
@@ -11,11 +25,15 @@ const state = {
   previousView: 'canvas',
   selectedVideo: slideRecommend[0],
   canvasQuery: DEFAULT_CANVAS_QUERY,
-  agentEnabled: true,
   isPlaying: false,
+  hiddenVideoIds: [],
   savedCanvases: loadSavedCanvases(),
-  currentCanvas: buildCanvasFromTopic(DEFAULT_CANVAS_QUERY, { id: 'canvas-default', save: false })
+  watchProgress: loadWatchProgress(),
+  tagPreferences: loadTagPreferences(),
+  currentCanvas: null
 }
+
+state.currentCanvas = buildCurrentGraph({ id: 'canvas-default', save: false })
 
 function render() {
   app.className = `app-shell view-${state.view}`
@@ -64,20 +82,26 @@ function renderHomeNav() {
         <button class="${state.view === 'recommend' ? 'active' : ''}" type="button" data-view="recommend">热门</button>
         <button class="${state.view === 'canvas' ? 'active' : ''}" type="button" data-view="canvas">知识画布</button>
       </nav>
-      <button class="search-button" type="button" aria-label="搜索"></button>
+      <button class="search-button" type="button" aria-label="搜索" data-action="focus-search"></button>
     </header>
   `
 }
 
 function renderRecommendPage() {
+  const videos = getRecommendedVideos()
   return `
     <section class="recommend-preview">
+      <div class="feed-summary">
+        <small>根据当前画布推送</small>
+        <h1>${escapeHtml(state.currentCanvas.title)}</h1>
+        <p>${escapeHtml(state.currentCanvas.tags.slice(0, 4).join(' / '))}</p>
+      </div>
       <div class="preview-grid">
         <div class="preview-column">
-          ${slideRecommend.filter((_, index) => index % 2 === 0).map(renderRecommendCard).join('')}
+          ${videos.filter((_, index) => index % 2 === 0).map(renderRecommendCard).join('')}
         </div>
         <div class="preview-column">
-          ${slideRecommend.filter((_, index) => index % 2 === 1).map(renderRecommendCard).join('')}
+          ${videos.filter((_, index) => index % 2 === 1).map(renderRecommendCard).join('')}
         </div>
       </div>
     </section>
@@ -85,17 +109,19 @@ function renderRecommendPage() {
 }
 
 function renderRecommendCard(video) {
-  const originalIndex = slideRecommend.findIndex((item) => item.id === video.id)
-  const className = originalIndex % 5 === 1 ? 'preview-card tall' : originalIndex % 5 === 0 ? 'preview-card compact' : 'preview-card'
+  const sourceVideo = resolvePlayableVideo(video, slideRecommend)
+  const progress = getVideoProgress(video.id)
+  const className = video.rank % 5 === 1 ? 'preview-card compact' : video.rank % 4 === 0 ? 'preview-card tall' : 'preview-card'
   return `
     <article class="${className}" data-video-id="${escapeAttribute(video.id)}" tabindex="0" role="button">
-      <div class="poster-wrap poster-${originalIndex + 1}">
+      <div class="poster-wrap poster-${sourceIndex(sourceVideo) + 1}">
+        <video src="${escapeAttribute(sourceVideo.video.play_addr.url_list[0])}" muted playsinline preload="metadata"></video>
         <div class="poster-fallback">
           <span>${escapeHtml(video.title)}</span>
           <small>${formatDuration(video.duration)}</small>
         </div>
         <div class="metrics">
-          <span>♡ ${formatNumber(video.statistics.digg_count)}</span>
+          <span>${escapeHtml(statusText(progress.status))}</span>
           <span>${formatDuration(video.duration)}</span>
         </div>
       </div>
@@ -103,7 +129,7 @@ function renderRecommendCard(video) {
       <div class="meta">
         <span class="avatar">${escapeHtml(video.author.nickname.slice(0, 1))}</span>
         <span class="author">${escapeHtml(video.author.nickname)}</span>
-        <span class="more">···</span>
+        <span class="more">${Math.round(video.score || video.knowledge.relevanceScore)}</span>
       </div>
     </article>
   `
@@ -120,9 +146,9 @@ function renderCanvasLanding() {
   return `
     <section class="canvas-home">
       <div class="canvas-hero">
-        <p>精选知识画布</p>
-        <h1>把碎片视频整理成一张可探索的学习画布</h1>
-        <span>从搜索主题或当前视频开始，AI 生成组件节点，再把视频挂到对应分支。</span>
+        <p>TikCanvas 精选</p>
+        <h1>把碎片视频整理成一张可探索的知识画布</h1>
+        <span>搜索一个主题，系统会把强相关视频放在中心，把远端知识放到外圈，像 Figma 一样保存和继续探索。</span>
       </div>
       <article class="current-canvas-card">
         <div>
@@ -140,14 +166,14 @@ function renderCanvasLanding() {
           <span class="input-mark" aria-hidden="true"></span>
           <input type="text" value="${escapeAttribute(state.canvasQuery)}" placeholder="你想整理什么主题" aria-label="你想整理什么主题">
         </label>
-        <button class="agent-toggle ${state.agentEnabled ? 'active' : ''}" type="button" data-action="toggle-agent">Agent</button>
-        <button class="start-button" type="submit">开始</button>
+        <button class="agent-toggle active" type="button" data-action="enter-current-canvas">Canvas</button>
+        <button class="start-button" type="submit">生成</button>
         <div class="query-chips">
-          ${exampleQueries.map((query) => `<button type="button" data-query="${escapeAttribute(query)}">${escapeHtml(shorten(query, 14))}</button>`).join('')}
+          ${exampleQueries.map((query) => `<button type="button" data-query="${escapeAttribute(query)}">${escapeHtml(shorten(query, 15))}</button>`).join('')}
         </div>
       </form>
       <div class="canvas-home-actions">
-        <button class="primary" type="button" data-action="new-canvas">生成新画布</button>
+        <button class="primary" type="button" data-action="new-canvas">重排画布</button>
         <button type="button" data-action="show-library">我的画布</button>
         <button type="button" data-action="canvas-from-video">从视频进入</button>
       </div>
@@ -163,31 +189,64 @@ function renderCanvasBoard() {
         <button class="canvas-back-button" type="button" data-action="canvas-landing" aria-label="返回画布首页">‹</button>
         <div>
           <h1>${escapeHtml(canvas.title)}</h1>
-          <p>已探索 ${canvas.progress}% · 已看 ${canvas.watched} / ${canvas.total} 个视频</p>
+          <p>${escapeHtml(canvas.topic)} · ${canvas.progress}% explored</p>
         </div>
         <button type="button" class="canvas-pill" data-action="save-current-canvas">保存</button>
       </div>
-      <div class="canvas-board">
-        <svg class="canvas-lines" viewBox="0 0 360 610" aria-hidden="true">
-          <path d="M180 302 C128 248 85 196 72 134" />
-          <path d="M180 302 C226 236 266 176 295 146" />
-          <path d="M180 302 C126 370 92 448 78 516" />
-          <path d="M180 302 C230 358 276 432 288 516" />
-          <path class="soft-line" d="M180 302 C164 396 170 492 188 566" />
-        </svg>
-        <article class="canvas-center">
-          <span class="center-plus">✦</span>
-          <h2>${escapeHtml(canvas.topic)}</h2>
-          <p>${escapeHtml(canvas.description)}</p>
-          <div class="center-tags">
-            ${canvas.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}
+      <div class="canvas-workbench">
+        <div class="canvas-tool-panel">
+          <div>
+            <small>TAG WEIGHTS</small>
+            <h2>标签控制画布分布</h2>
           </div>
-        </article>
-        ${canvas.components.map(renderCanvasNode).join('')}
-        ${canvas.videos.map(renderCanvasVideoChip).join('')}
+          <div class="tag-panel">
+            ${getAvailableTags().map(renderTagChip).join('')}
+          </div>
+          <form class="tag-form" data-tag-form>
+            <input type="text" name="tag" placeholder="新增标签" aria-label="新增标签">
+            <button type="submit">+</button>
+          </form>
+        </div>
+        <div class="canvas-board">
+          <svg class="canvas-lines" viewBox="0 0 390 820" aria-hidden="true">
+            ${renderCanvasLines(canvas)}
+          </svg>
+          <article class="canvas-center">
+            <span class="center-plus">${canvas.progress}%</span>
+            <h2>${escapeHtml(canvas.topic)}</h2>
+            <p>${escapeHtml(canvas.description)}</p>
+            <div class="center-tags">
+              ${canvas.tags.slice(0, 5).map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}
+            </div>
+          </article>
+          ${canvas.branches.map(renderCanvasNode).join('')}
+          ${canvas.videos.map(renderCanvasVideoChip).join('')}
+        </div>
       </div>
     </section>
   `
+}
+
+function renderTagChip(tag) {
+  const active = state.tagPreferences.activeTags.includes(tag)
+  const disabled = state.tagPreferences.disabledTags.includes(tag)
+  return `
+    <span class="tag-chip ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}">
+      <button type="button" data-tag-toggle="${escapeAttribute(tag)}">${escapeHtml(tag)}</button>
+      <button type="button" data-tag-remove="${escapeAttribute(tag)}" aria-label="删除 ${escapeAttribute(tag)}">×</button>
+    </span>
+  `
+}
+
+function renderCanvasLines(canvas) {
+  const center = { x: 195, y: 380 }
+  const branchLines = canvas.branches.map((node) =>
+    `<path d="M${center.x} ${center.y} C${center.x} ${node.y}, ${node.x} ${center.y}, ${node.x + 42} ${node.y + 32}" />`
+  )
+  const videoLines = canvas.videos.slice(0, 12).map((video) =>
+    `<path class="${video.distanceLevel >= 3 ? 'soft-line' : ''}" d="M${center.x} ${center.y} C${center.x + (video.x - center.x) * 0.2} ${video.y}, ${video.x} ${center.y}, ${video.x + 78} ${video.y + 36}" />`
+  )
+  return [...branchLines, ...videoLines].join('')
 }
 
 function renderCanvasLibrary() {
@@ -198,16 +257,16 @@ function renderCanvasLibrary() {
         <button class="canvas-back-button" type="button" data-action="canvas-landing" aria-label="返回画布首页">‹</button>
         <div>
           <p>我的画布</p>
-          <h1>继续上次的学习路线</h1>
+          <h1>继续上次的知识谱系</h1>
         </div>
       </div>
       <div class="library-list">
         ${items.map((canvas) => `
           <article class="library-card" data-canvas-id="${escapeAttribute(canvas.id)}" tabindex="0" role="button">
-            <small>${escapeHtml(canvas.sourceLabel)}</small>
+            <small>${escapeHtml(canvas.sourceLabel || '主题生成')}</small>
             <h2>${escapeHtml(canvas.title)}</h2>
-            <p>已探索 ${canvas.progress}% · 已看 ${canvas.watched} / ${canvas.total} 个视频</p>
-            <div>${canvas.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
+            <p>已探索 ${canvas.progress || 0}% · 已看 ${canvas.watched || 0} / ${canvas.total || 0} 个视频</p>
+            <div>${(canvas.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
           </article>
         `).join('')}
       </div>
@@ -215,9 +274,9 @@ function renderCanvasLibrary() {
   `
 }
 
-function renderCanvasNode(node, index) {
+function renderCanvasNode(node) {
   return `
-    <article class="canvas-node node-${index + 1}" style="left:${node.x}px; top:${node.y}px">
+    <article class="canvas-node" style="left:${node.x}px; top:${node.y}px">
       <span class="done">${escapeHtml(node.icon)}</span>
       <h3>${escapeHtml(node.name)}</h3>
       <p>${escapeHtml(node.desc)}</p>
@@ -226,19 +285,31 @@ function renderCanvasNode(node, index) {
   `
 }
 
-function renderCanvasVideoChip(video, index) {
-  const positionClass = `canvas-video-chip chip-${index + 1}`
+function renderCanvasVideoChip(video) {
+  const sourceVideo = resolvePlayableVideo(video, slideRecommend)
+  const progress = getVideoProgress(video.id)
+  const progressPercent = Math.round(progress.progress * 100)
   return `
-    <article class="${positionClass}" data-open-video="${escapeAttribute(video.id)}" tabindex="0" role="button">
-      <div class="chip-cover poster-${index + 1}">
-        <video src="${escapeAttribute(video.video.play_addr.url_list[0])}" muted playsinline preload="metadata"></video>
-        <b>${formatDuration(video.duration)}</b>
+    <article
+      class="canvas-video-chip distance-${video.distanceLevel}"
+      style="left:${video.x}px; top:${video.y}px"
+      data-open-video="${escapeAttribute(video.id)}"
+      tabindex="0"
+      role="button"
+    >
+      <button class="node-remove" type="button" data-delete-video="${escapeAttribute(video.id)}" aria-label="删除节点">×</button>
+      <div class="chip-cover poster-${sourceIndex(sourceVideo) + 1}">
+        <video src="${escapeAttribute(sourceVideo.video.play_addr.url_list[0])}" muted playsinline preload="metadata"></video>
+        <b>${escapeHtml(video.relevanceLabel)} · ${Math.round(video.score)}</b>
       </div>
-      <div>
-        <small>${escapeHtml(video.tags.slice(0, 2).join(' / '))}</small>
+      <div class="chip-body">
+        <small>${escapeHtml(video.tags.slice(0, 3).join(' / '))}</small>
         <h3>${escapeHtml(video.title)}</h3>
-        <p>${escapeHtml(video.summary)}</p>
-        <code>${escapeHtml(video.video.play_addr.url_list[0])}</code>
+        <p>${escapeHtml(video.knowledge.description)}</p>
+        <div class="node-progress">
+          <span style="width:${progressPercent}%"></span>
+        </div>
+        <code>${escapeHtml(statusText(progress.status))} · ${progressPercent}%</code>
       </div>
     </article>
   `
@@ -246,6 +317,8 @@ function renderCanvasVideoChip(video, index) {
 
 function renderVideoPage() {
   const video = state.selectedVideo || slideRecommend[0]
+  const progress = getVideoProgress(video.id)
+  const progressPercent = Math.round(progress.progress * 100)
   return `
     <section class="video-detail-page">
       <video
@@ -260,8 +333,8 @@ function renderVideoPage() {
       <header class="video-topbar">
         <button class="video-back" type="button" data-action="back-from-video" aria-label="返回">‹</button>
         <div class="video-search">
-          <span>搜你想看的</span>
-          <b>搜索</b>
+          <span>${escapeHtml(state.currentCanvas.title)}</span>
+          <b>${escapeHtml(statusText(progress.status))}</b>
         </div>
       </header>
       <button class="video-play-toggle ${state.isPlaying ? 'is-playing' : ''}" type="button" data-action="toggle-video-play" aria-label="播放或暂停">
@@ -270,8 +343,8 @@ function renderVideoPage() {
       <aside class="video-actions" aria-label="视频操作">
         <button type="button">♡<small>${formatNumber(video.statistics.digg_count)}</small></button>
         <button type="button">评<small>158</small></button>
-        <button type="button">藏<small>收藏</small></button>
-        <button type="button">享<small>分享</small></button>
+        <button type="button">进<small>${progressPercent}%</small></button>
+        <button type="button">图<small>画布</small></button>
       </aside>
       <section class="video-info-panel">
         <div class="creator-row">
@@ -282,7 +355,7 @@ function renderVideoPage() {
         <h1>${escapeHtml(video.desc)}</h1>
         <p>${escapeHtml(video.summary)}</p>
         <div class="video-tags">${video.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
-        <div class="video-path">${escapeHtml(video.video.play_addr.url_list[0])}</div>
+        <div class="watch-meter"><span style="width:${progressPercent}%"></span></div>
         <div class="video-page-actions">
           <button class="light-action" type="button" data-action="next-video">继续下一个</button>
           <button class="canvas-action" type="button" data-action="open-canvas-from-video">进入知识画布</button>
@@ -299,55 +372,82 @@ function bindEvents() {
       render()
     })
   })
-  app.querySelectorAll('[data-video-id]').forEach((card) => {
+
+  app.querySelectorAll('[data-video-id], [data-open-video]').forEach((card) => {
     card.addEventListener('click', () => {
-      const video = slideRecommend.find((item) => item.id === card.dataset.videoId)
+      const id = card.dataset.videoId || card.dataset.openVideo
+      const video = slideRecommend.find((item) => item.id === id) || state.currentCanvas.videos.find((item) => item.id === id)
       if (!video) return
-      openVideo(video, 'recommend')
+      openVideo(video, state.view)
     })
   })
-  app.querySelectorAll('[data-open-video]').forEach((card) => {
-    card.addEventListener('click', () => {
-      const video = slideRecommend.find((item) => item.id === card.dataset.openVideo)
-      if (!video) return
-      openVideo(video, 'canvas')
+
+  app.querySelectorAll('[data-delete-video]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation()
+      deleteVideoNode(button.dataset.deleteVideo)
     })
   })
+
   app.querySelectorAll('[data-canvas-id]').forEach((card) => {
     card.addEventListener('click', () => {
       const canvas = state.savedCanvases.find((item) => item.id === card.dataset.canvasId) || state.currentCanvas
-      state.currentCanvas = canvas
+      state.canvasQuery = canvas.topic || state.canvasQuery
+      state.hiddenVideoIds = canvas.hiddenVideoIds || []
+      state.currentCanvas = canvas.branches && canvas.videos ? canvas : buildCurrentGraph({ id: canvas.id, createdAt: canvas.createdAt })
       state.canvasMode = 'board'
       render()
     })
   })
+
   app.querySelectorAll('[data-query]').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.canvasQuery = button.dataset.query
-      generateCanvasFromQuery(state.canvasQuery)
-    })
+    button.addEventListener('click', () => generateCanvasFromQuery(button.dataset.query))
   })
-  const form = app.querySelector('[data-canvas-form]')
-  if (form) {
-    const input = form.querySelector('input')
+
+  app.querySelectorAll('[data-tag-toggle]').forEach((button) => {
+    button.addEventListener('click', () => toggleTag(button.dataset.tagToggle))
+  })
+
+  app.querySelectorAll('[data-tag-remove]').forEach((button) => {
+    button.addEventListener('click', () => removeTag(button.dataset.tagRemove))
+  })
+
+  const canvasForm = app.querySelector('[data-canvas-form]')
+  if (canvasForm) {
+    const input = canvasForm.querySelector('input')
     input?.addEventListener('input', () => {
       state.canvasQuery = input.value
     })
-    form.addEventListener('submit', (event) => {
+    canvasForm.addEventListener('submit', (event) => {
       event.preventDefault()
       generateCanvasFromQuery(input?.value || state.canvasQuery)
     })
   }
+
+  const tagForm = app.querySelector('[data-tag-form]')
+  if (tagForm) {
+    tagForm.addEventListener('submit', (event) => {
+      event.preventDefault()
+      const value = new FormData(tagForm).get('tag')
+      addTag(value)
+    })
+  }
+
   const player = app.querySelector('.detail-video')
   if (player) {
     player.addEventListener('play', () => setVideoPlaying(true))
     player.addEventListener('pause', () => setVideoPlaying(false))
-    player.addEventListener('ended', () => setVideoPlaying(false))
+    player.addEventListener('ended', () => recordVideoProgress(1))
+    player.addEventListener('timeupdate', () => {
+      if (!Number.isFinite(player.duration) || player.duration <= 0) return
+      recordVideoProgress(player.currentTime / player.duration)
+    })
     player.addEventListener('click', (event) => {
       event.preventDefault()
       togglePlayer(player)
     })
   }
+
   app.querySelectorAll('[data-action]').forEach((button) => {
     button.addEventListener('click', () => handleAction(button.dataset.action))
   })
@@ -357,6 +457,7 @@ function handleAction(action) {
   if (action === 'back-from-video') {
     state.view = state.previousView || 'canvas'
     state.isPlaying = false
+    refreshCurrentGraph()
     render()
     return
   }
@@ -369,8 +470,9 @@ function handleAction(action) {
     return
   }
   if (action === 'next-video') {
-    const index = slideRecommend.findIndex((item) => item.id === state.selectedVideo?.id)
-    const next = slideRecommend[(index + 1 + slideRecommend.length) % slideRecommend.length]
+    const videos = getRecommendedVideos()
+    const index = videos.findIndex((item) => item.id === state.selectedVideo?.id)
+    const next = videos[(index + 1 + videos.length) % videos.length] || videos[0]
     openVideo(next, 'video')
     return
   }
@@ -379,18 +481,13 @@ function handleAction(action) {
     if (player) togglePlayer(player)
     return
   }
-  if (action === 'toggle-agent') {
-    state.agentEnabled = !state.agentEnabled
-    render()
-    return
-  }
   if (action === 'enter-current-canvas') {
     state.canvasMode = 'board'
     render()
     return
   }
   if (action === 'new-canvas') {
-    generateCanvasFromQuery(DEFAULT_CANVAS_QUERY)
+    generateCanvasFromQuery(state.canvasQuery)
     return
   }
   if (action === 'canvas-from-video') {
@@ -412,13 +509,20 @@ function handleAction(action) {
     saveCanvas(state.currentCanvas)
     state.canvasMode = 'library'
     render()
+    return
+  }
+  if (action === 'focus-search') {
+    state.view = 'canvas'
+    state.canvasMode = 'landing'
+    render()
+    app.querySelector('[data-canvas-form] input')?.focus()
   }
 }
 
 function generateCanvasFromQuery(rawQuery) {
-  const query = normalizeQuery(rawQuery)
-  state.canvasQuery = query
-  state.currentCanvas = buildCanvasFromTopic(query, { agentEnabled: state.agentEnabled })
+  state.canvasQuery = normalizeQuery(rawQuery)
+  state.hiddenVideoIds = []
+  state.currentCanvas = buildCurrentGraph()
   saveCanvas(state.currentCanvas)
   state.canvasMode = 'board'
   state.view = 'canvas'
@@ -428,130 +532,167 @@ function generateCanvasFromQuery(rawQuery) {
 function generateCanvasFromVideo(video) {
   const selected = video || slideRecommend[0]
   state.selectedVideo = selected
-  state.canvasQuery = selected.title
-  state.currentCanvas = buildCanvasFromTopic(`${selected.title} 学习路线`, {
-    sourceVideo: selected,
-    agentEnabled: state.agentEnabled,
-    sourceLabel: '从视频生成'
-  })
+  state.canvasQuery = `${selected.title} 学习路线`
+  ensureTags(selected.tags.slice(0, 2))
+  state.hiddenVideoIds = []
+  state.currentCanvas = buildCurrentGraph({ sourceLabel: '从视频生成' })
   saveCanvas(state.currentCanvas)
   state.canvasMode = 'board'
 }
 
-function buildCanvasFromTopic(rawTopic, options = {}) {
-  const topic = normalizeQuery(rawTopic)
-  const sourceVideo = options.sourceVideo || pickVideoForTopic(topic)
-  const orderedVideos = orderVideos(sourceVideo)
-  const title = topic.includes('路线') || topic.includes('画布') ? topic : `${topic} 知识画布`
-  const agentEnabled = options.agentEnabled ?? true
-  const baseTags = unique([
-    ...sourceVideo.tags.slice(0, 2),
-    topic.includes('Codex') ? 'Codex' : '学习路线',
-    agentEnabled ? 'Agent' : '手动整理'
-  ]).slice(0, 3)
-
-  return {
-    id: options.id || `canvas-${Date.now()}`,
-    title,
-    topic: topic.replace(/^帮我(整理|生成)\s*/, ''),
-    sourceLabel: options.sourceLabel || '主题生成',
-    description: `围绕 ${topic} 拆出概念、工具、流程和延伸观看路径。`,
-    progress: options.progress || 5,
-    watched: options.watched || Math.min(2, orderedVideos.length),
-    total: options.total || 40,
-    tags: baseTags,
-    videos: orderedVideos,
-    createdAt: options.createdAt || new Date().toISOString(),
-    components: buildCanvasComponents(topic, orderedVideos)
-  }
+function buildCurrentGraph(options = {}) {
+  return buildKnowledgeGraph(
+    state.canvasQuery,
+    {
+      ...state.tagPreferences,
+      ...options,
+      hiddenVideoIds: state.hiddenVideoIds,
+      watchProgress: state.watchProgress
+    },
+    slideRecommend
+  )
 }
 
-function buildCanvasComponents(topic, videos) {
-  const cleanTopic = topic.replace(/^帮我(整理|生成)\s*/, '').replace(/的知识画布$/, '')
-  const nodes = [
-    {
-      id: 'core',
-      name: '核心概念',
-      desc: `先把 ${cleanTopic} 的定义、边界和使用场景讲清楚。`,
-      tags: ['入门', videos[0].tags[0]],
-      icon: '✓',
-      x: 18,
-      y: 92
-    },
-    {
-      id: 'tooling',
-      name: '工具接入',
-      desc: '整理 API、Agent、上下文和工具调用的关键连接点。',
-      tags: ['API', 'Agent'],
-      icon: '+',
-      x: 230,
-      y: 116
-    },
-    {
-      id: 'workflow',
-      name: '工作流复用',
-      desc: '把视频里的方法沉淀到资料整理、写作和研发流程。',
-      tags: ['自动化', '流程'],
-      icon: '▶',
-      x: 30,
-      y: 414
-    },
-    {
-      id: 'extend',
-      name: '对比延伸',
-      desc: '用相邻视频补齐差异、适用任务和后续观看顺序。',
-      tags: ['对比', videos[2].tags[0]],
-      icon: '◇',
-      x: 228,
-      y: 438
-    }
+function refreshCurrentGraph() {
+  const createdAt = state.currentCanvas?.createdAt
+  state.currentCanvas = buildCurrentGraph({ id: state.currentCanvas?.id, createdAt })
+}
+
+function getRecommendedVideos() {
+  const ids = new Set(state.currentCanvas.videos.map((video) => video.id))
+  const rest = slideRecommend.filter((video) => !ids.has(video.id))
+  return [...state.currentCanvas.videos, ...rest.map((video, index) => ({ ...video, rank: state.currentCanvas.videos.length + index + 1 }))]
+}
+
+function getAvailableTags() {
+  const tags = [
+    ...state.tagPreferences.customTags,
+    ...state.tagPreferences.activeTags,
+    ...state.currentCanvas.tags,
+    ...slideRecommend.flatMap((video) => video.tags)
   ]
-
-  return nodes.map((node, index) => ({
-    ...node,
-    videoId: videos[index % videos.length].id
-  }))
+  return [...new Set(tags)].slice(0, 22)
 }
 
-function pickVideoForTopic(topic) {
-  const normalized = topic.toLowerCase()
-  return slideRecommend.find((video) => {
-    const haystack = [video.title, video.desc, video.summary, ...video.tags].join(' ').toLowerCase()
-    return haystack.includes(normalized) || video.tags.some((tag) => normalized.includes(tag.toLowerCase()))
-  }) || slideRecommend[0]
+function toggleTag(tag) {
+  if (!tag) return
+  const active = new Set(state.tagPreferences.activeTags)
+  const disabled = new Set(state.tagPreferences.disabledTags)
+  if (active.has(tag)) {
+    active.delete(tag)
+    disabled.add(tag)
+  } else {
+    disabled.delete(tag)
+    active.add(tag)
+  }
+  state.tagPreferences.activeTags = [...active]
+  state.tagPreferences.disabledTags = [...disabled]
+  persistTagPreferences()
+  refreshCurrentGraph()
+  render()
 }
 
-function orderVideos(firstVideo) {
-  const first = firstVideo || slideRecommend[0]
-  return [first, ...slideRecommend.filter((video) => video.id !== first.id)]
+function addTag(value) {
+  const tag = String(value || '').trim()
+  if (!tag) return
+  state.tagPreferences.customTags = [...new Set([tag, ...state.tagPreferences.customTags])].slice(0, 8)
+  ensureTags([tag])
+  persistTagPreferences()
+  refreshCurrentGraph()
+  render()
+}
+
+function removeTag(tag) {
+  if (!tag) return
+  state.tagPreferences.activeTags = state.tagPreferences.activeTags.filter((item) => item !== tag)
+  state.tagPreferences.customTags = state.tagPreferences.customTags.filter((item) => item !== tag)
+  state.tagPreferences.disabledTags = [...new Set([tag, ...state.tagPreferences.disabledTags])]
+  persistTagPreferences()
+  refreshCurrentGraph()
+  render()
+}
+
+function ensureTags(tags) {
+  const active = new Set(state.tagPreferences.activeTags)
+  tags.filter(Boolean).forEach((tag) => active.add(tag))
+  state.tagPreferences.activeTags = [...active]
+  state.tagPreferences.disabledTags = state.tagPreferences.disabledTags.filter((tag) => !active.has(tag))
+  persistTagPreferences()
+}
+
+function deleteVideoNode(videoId) {
+  state.hiddenVideoIds = [...new Set([videoId, ...state.hiddenVideoIds])]
+  refreshCurrentGraph()
+  render()
 }
 
 function openVideo(video, sourceView) {
-  state.selectedVideo = video
+  const playable = resolvePlayableVideo(video, slideRecommend)
+  state.selectedVideo = playable
   state.previousView = sourceView === 'video' ? state.previousView : sourceView
   state.view = 'video'
   state.isPlaying = false
   render()
 }
 
+function recordVideoProgress(progress) {
+  if (!state.selectedVideo?.id) return
+  state.watchProgress = updateWatchProgress(state.watchProgress, state.selectedVideo.id, progress)
+  saveWatchProgress()
+}
+
 function saveCanvas(canvas) {
-  const next = [canvas, ...state.savedCanvases.filter((item) => item.id !== canvas.id)].slice(0, 6)
+  const next = [canvas, ...state.savedCanvases.filter((item) => item.id !== canvas.id)].slice(0, 8)
   state.savedCanvases = next
+  setStorage(STORAGE_KEY, next)
+}
+
+function loadSavedCanvases() {
+  const parsed = getStorage(STORAGE_KEY, [])
+  return Array.isArray(parsed) ? parsed : []
+}
+
+function saveWatchProgress() {
+  setStorage(WATCH_PROGRESS_KEY, state.watchProgress)
+}
+
+function loadWatchProgress() {
+  const parsed = getStorage(WATCH_PROGRESS_KEY, {})
+  return parsed && typeof parsed === 'object' ? parsed : {}
+}
+
+function persistTagPreferences() {
+  setStorage(TAG_PREFERENCES_KEY, state.tagPreferences)
+}
+
+function loadTagPreferences() {
+  const parsed = getStorage(TAG_PREFERENCES_KEY, defaultTagPreferences)
+  return {
+    activeTags: Array.isArray(parsed.activeTags) ? parsed.activeTags : defaultTagPreferences.activeTags,
+    disabledTags: Array.isArray(parsed.disabledTags) ? parsed.disabledTags : [],
+    customTags: Array.isArray(parsed.customTags) ? parsed.customTags : []
+  }
+}
+
+function getStorage(key, fallback) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+    const value = window.localStorage.getItem(key)
+    return value ? JSON.parse(value) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function setStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value))
   } catch {
     // localStorage can be unavailable in some embedded previews.
   }
 }
 
-function loadSavedCanvases() {
-  try {
-    const value = window.localStorage.getItem(STORAGE_KEY)
-    const parsed = value ? JSON.parse(value) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
+function getVideoProgress(videoId) {
+  return state.watchProgress[videoId] || { progress: 0, status: 'unseen' }
 }
 
 function togglePlayer(player) {
@@ -570,18 +711,24 @@ function setVideoPlaying(isPlaying) {
   button.textContent = isPlaying ? 'Ⅱ' : '▶'
 }
 
+function sourceIndex(video) {
+  return Math.max(0, slideRecommend.findIndex((item) => item.id === (video?.playableSourceId || video?.id))) % 3
+}
+
 function normalizeQuery(value) {
   const query = String(value || '').trim()
   return query || DEFAULT_CANVAS_QUERY
 }
 
-function unique(items) {
-  return [...new Set(items.filter(Boolean))]
-}
-
 function shorten(value, maxLength) {
   const text = String(value)
   return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text
+}
+
+function statusText(status) {
+  if (status === 'watched') return '已看'
+  if (status === 'watching') return '观看中'
+  return '未看'
 }
 
 function formatNumber(value) {
@@ -615,4 +762,6 @@ window.addEventListener('keydown', (event) => {
   if (activeCard) activeCard.click()
 })
 
+window.__tikcanvasVideos = slideRecommend
+cleanQuery(DEFAULT_CANVAS_QUERY)
 render()
