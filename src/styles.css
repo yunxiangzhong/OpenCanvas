@@ -1,0 +1,495 @@
+:root {
+  color-scheme: light;
+  --ink: #181611;
+  --muted: #756f64;
+  --paper: #fbf8ee;
+  --panel: #fffdf7;
+  --line: rgba(24, 22, 17, 0.11);
+  --red: #d84c3f;
+  --green: #1f8f72;
+  --blue: #2a6fbb;
+  --gold: #c28a26;
+  --shadow: 0 18px 60px rgba(29, 24, 15, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--paper);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  font-family:
+    "Microsoft YaHei UI",
+    "PingFang SC",
+    "Noto Sans CJK SC",
+    system-ui,
+    sans-serif;
+  letter-spacing: 0;
+  background:
+    linear-gradient(90deg, rgba(24, 22, 17, 0.035) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(180deg, rgba(216, 76, 63, 0.08), transparent 32vh),
+    var(--paper);
+}
+
+button,
+article {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(100%, 460px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 18px 14px 24px;
+}
+
+.hero-panel {
+  min-height: 178px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 247, 0.94), rgba(255, 246, 225, 0.82)),
+    var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.eyebrow {
+  margin: 0 0 9px;
+  color: var(--red);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.hero-panel h1 {
+  max-width: 250px;
+  font-size: 34px;
+  line-height: 1.04;
+}
+
+.hero-copy {
+  max-width: 230px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.hero-mark {
+  width: 74px;
+  height: 74px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fffdf7;
+  font-size: 20px;
+  font-weight: 900;
+  background: var(--ink);
+  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.08);
+}
+
+.slide-recommend {
+  padding-top: 20px;
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-head h2 {
+  font-size: 22px;
+}
+
+.section-head span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.recommend-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: 0 10px 24px rgba(29, 24, 15, 0.08);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.recommend-card:hover,
+.recommend-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(216, 76, 63, 0.5);
+  box-shadow: 0 18px 34px rgba(29, 24, 15, 0.14);
+  outline: none;
+}
+
+.poster {
+  height: 170px;
+  position: relative;
+  overflow: hidden;
+  background: #ece5d4;
+}
+
+.recommend-card.is-tall {
+  margin-top: 26px;
+}
+
+.recommend-card.is-tall .poster {
+  height: 225px;
+}
+
+.poster img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.poster.is-placeholder {
+  display: grid;
+  place-items: center;
+}
+
+.poster.is-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+}
+
+.poster.is-placeholder span {
+  position: relative;
+  color: rgba(255, 253, 247, 0.86);
+  font-size: 42px;
+  font-weight: 900;
+}
+
+.cover-1 {
+  background: linear-gradient(145deg, #11100d, #d84c3f);
+}
+
+.cover-2 {
+  background: linear-gradient(145deg, #1f8f72, #11100d);
+}
+
+.cover-3 {
+  background: linear-gradient(145deg, #2a6fbb, #c28a26);
+}
+
+.card-body {
+  padding: 11px 10px 12px;
+}
+
+.card-body h3 {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.card-body p {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.tag-row span {
+  max-width: 100%;
+  padding: 4px 7px;
+  border: 1px solid rgba(24, 22, 17, 0.1);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.2;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.card-foot span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-foot strong {
+  flex: 0 0 auto;
+  color: var(--red);
+  font-size: 12px;
+}
+
+.canvas-view {
+  min-height: calc(100vh - 42px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.canvas-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0 2px;
+}
+
+.canvas-header h1 {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.back-button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 23px;
+  background: var(--panel);
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(29, 24, 15, 0.1);
+}
+
+.canvas-stage {
+  position: relative;
+  min-height: 600px;
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(216, 76, 63, 0.14), transparent 30%),
+    linear-gradient(90deg, rgba(24, 22, 17, 0.05) 1px, transparent 1px) 0 0 / 34px 34px,
+    linear-gradient(180deg, rgba(255, 253, 247, 0.96), rgba(246, 237, 214, 0.74));
+}
+
+.canvas-stage::before,
+.canvas-stage::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76%;
+  height: 1px;
+  background: rgba(24, 22, 17, 0.16);
+  transform-origin: center;
+}
+
+.canvas-stage::before {
+  transform: translate(-50%, -50%) rotate(28deg);
+}
+
+.canvas-stage::after {
+  transform: translate(-50%, -50%) rotate(-28deg);
+}
+
+.video-node,
+.canvas-node {
+  position: absolute;
+  z-index: 1;
+  border: 1px solid rgba(24, 22, 17, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.92);
+  box-shadow: 0 12px 32px rgba(29, 24, 15, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.main-node {
+  left: 50%;
+  top: 50%;
+  width: min(78%, 290px);
+  padding: 18px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.node-label {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.main-node h2 {
+  margin-top: 8px;
+  font-size: 22px;
+  line-height: 1.28;
+}
+
+.main-node p {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.tag-row.is-center {
+  justify-content: center;
+}
+
+.canvas-node {
+  width: 148px;
+  padding: 13px;
+}
+
+.canvas-node h3 {
+  font-size: 15px;
+}
+
+.canvas-node p {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.node-dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  margin-bottom: 9px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.node-1 {
+  left: 18px;
+  top: 54px;
+}
+
+.node-2 {
+  right: 18px;
+  top: 112px;
+}
+
+.node-3 {
+  left: 20px;
+  bottom: 116px;
+}
+
+.node-4 {
+  right: 18px;
+  bottom: 62px;
+}
+
+.node-2 .node-dot {
+  background: var(--green);
+}
+
+.node-3 .node-dot {
+  background: var(--blue);
+}
+
+.node-4 .node-dot {
+  background: var(--gold);
+}
+
+.video-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.video-slot span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.video-slot code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--red);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+  .app-shell {
+    padding-inline: 10px;
+  }
+
+  .hero-panel {
+    min-height: 150px;
+  }
+
+  .hero-panel h1 {
+    font-size: 28px;
+  }
+
+  .hero-mark {
+    width: 58px;
+    height: 58px;
+    font-size: 16px;
+  }
+
+  .recommend-grid {
+    gap: 8px;
+  }
+
+  .poster {
+    height: 148px;
+  }
+
+  .recommend-card.is-tall .poster {
+    height: 198px;
+  }
+
+  .canvas-node {
+    width: 132px;
+  }
+}
