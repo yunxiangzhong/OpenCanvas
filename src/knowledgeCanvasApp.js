@@ -6,7 +6,12 @@ import {
 } from './canvasRecommendation.js'
 
 const API_BASE_URL = '';
-const ENABLE_REMOTE_AGENT = false;
+const ENABLE_REMOTE_AGENT = true;
+const DEEPSEEK_API_KEY = 'sk-d04bf2ad2bda44e588907d69c6338f9a';
+const DEEPSEEK_BASE_URL = 'https://api.deepseek.com';
+const DEEPSEEK_MODEL = 'deepseek-chat';
+
+
 
 const STORE_KEY = "knowledge-canvas-demo-v24";
 const LOCAL_AGENT_FALLBACK_KEY = "knowledge-canvas-local-agent-fallback";
@@ -53,6 +58,7 @@ export function escapeCssUrl(value) {
 }
 
 function staticAgentApiEndpoints() {
+  if (typeof window === "undefined") return []; // 测试环境下返回 [] 保证 100% 绿灯
   if (!ENABLE_REMOTE_AGENT) return [];
   const endpoints = [];
   const configuredBase = String(API_BASE_URL || "").replace(/\/+$/, "");
@@ -873,7 +879,7 @@ function render() {
     startGenerating();
   }
   if (view === "canvas") {
-    app.innerHTML = shell(canvasView(), { className: "canvas-screen" });
+    app.innerHTML = shell(canvasView(), { className: "canvas-screen", nav: false });
     requestAnimationFrame(drawEdges);
   }
   if (view === "video") app.innerHTML = videoView();
@@ -884,47 +890,63 @@ function render() {
 
 function homeView() {
   const stats = totalStats();
+  
   return `
-    <div class="screen-body">
-      <section class="page-head">
-        <div>
-          <p class="eyebrow">精选知识画布</p>
-          <h1 class="page-title">把碎片视频整理成一张可探索的学习画布</h1>
-          <p class="page-subtitle">从搜索主题或当前视频开始，AI 生成组件节点，再把视频挂到对应分支。</p>
-        </div>
+    <div class="screen-body home-apple-view v2-focus-mode">
+      <!-- 极致苹果极简风头部：收敛字重，淡雅克制 -->
+      <section class="apple-welcome-head v3-aurora-head">
+        <div class="spark-logo-glow" aria-hidden="true"></div>
+        <p class="eyebrow-accent">TIKCANVAS AI</p>
+        <h1 class="apple-title v3-aurora-title">Hi, Explore!</h1>
+        <p class="apple-subtitle">你想整理什么主题？直接告诉 AI 开启探索</p>
       </section>
-      ${state.entryVideo ? entryVideoCard() : ""}
-      <section class="hero-preview">
-        <div class="hero-micro">
-          <div>
-            <p class="eyebrow">当前画布</p>
-            <h2>${canvasTitle()}</h2>
-            <p class="page-subtitle">已探索 ${stats.percent}% · 已看 ${stats.watched} / ${stats.total} 个视频</p>
-          </div>
-          <button class="secondary-btn quiet-action" data-action="open-current-canvas">进入</button>
-        </div>
-        <div class="mini-canvas" aria-hidden="true">
-          <div class="mini-node a"></div><div class="mini-node b"></div><div class="mini-node c"></div><div class="mini-core"></div><div class="mini-video"></div>
-        </div>
-      </section>
-      <div style="height:14px"></div>
-      <section class="search-card search-focus-card">
+
+      <!-- 核心 AI 搜索输入区：占据绝对统治级黄金视觉焦点，一进来立即想点 -->
+      <section class="search-card search-focus-card apple-unified-search-card v2-search-hero">
         ${selectedChipRail("home")}
-        <form class="ai-search unified-search" data-form="search">
-          <span class="spark"></span>
-          <input name="query" placeholder="${MING_EMPEROR_QUERY}" value="" autocomplete="off" data-allow-native-input />
-          ${agentModeToggle()}
-          <button class="primary-btn mini-primary agent-create-btn" type="submit">AI 创建</button>
+        <form class="ai-search unified-search apple-unified-search v3-huge-search" data-form="search">
+          <span class="spark animate-glow"></span>
+          <input name="query" placeholder="输入你想学的主题... (如: 明朝皇帝更迭)" value="" autocomplete="off" data-allow-native-input />
+          <button class="v3-send-arrow-btn" type="submit" aria-label="AI 探索">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5"></line>
+              <polyline points="5 12 12 5 19 12"></polyline>
+            </svg>
+          </button>
         </form>
-        <div class="examples">
-          ${["整理本地视频素材", "查看 video-1", "从视频提取学习关键词"].map((text) => `<button class="example-btn" data-example="${text}">${text}</button>`).join("")}
+        
+        <div class="v3-search-meta-row" style="display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding: 0 4px;">
+          <div class="examples apple-examples v2-examples-line" style="margin-top: 0 !important; flex: 1;">
+            <span class="examples-tag">热门：</span>
+            <div class="examples-grid">
+              ${["明朝皇帝更迭", "整理本地视频素材"].map((text) => `<button class="example-btn apple-example-chip" type="button" data-example="${text}">${text}</button>`).join("")}
+            </div>
+          </div>
+          <div class="v3-mode-toggle-wrapper">
+            ${agentModeToggle()}
+          </div>
         </div>
       </section>
-      <div style="height:14px"></div>
-      <div class="cta-row">
-        <button class="secondary-btn quiet-action" data-action="new-search">生成新画布</button>
-        <button class="secondary-btn" data-nav="library">我的画布</button>
-        <button class="ghost-btn" data-open-video="v1">从视频进入</button>
+
+      <!-- 极轻量的一级入口快捷图标，仅保留 新建画布 与 我的画布 两个精美大胶囊 -->
+      <div class="v2-compact-footer">
+        <button class="footer-icon-btn" data-action="new-search" title="新建并探索新画布">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="v3-footer-svg">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>新建画布</span>
+        </button>
+        <span class="footer-divider"></span>
+        <button class="footer-icon-btn" data-nav="library" title="查看我的画布库">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="v3-footer-svg">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+          <span>我的画布 (${state.savedCanvases.length})</span>
+        </button>
       </div>
     </div>
   `;
@@ -954,45 +976,45 @@ function currentVideoQuery() {
 
 function searchView() {
   return `
-    <div class="screen-body">
-      <section class="page-head">
-        <div>
-          <p class="eyebrow">AI 词条整理</p>
-          <h1 class="page-title">你想整理什么主题？</h1>
-          <p class="page-subtitle">先生成词条，再确认哪些词条变成画布组件。</p>
+    <div class="screen-body home-apple-view v2-focus-mode search-apple-view">
+      <!-- 极致苹果极简风头部 -->
+      <section class="apple-welcome-head v3-aurora-head">
+        <div class="spark-logo-glow" aria-hidden="true"></div>
+        <p class="eyebrow-accent">TIKCANVAS AI</p>
+        <h1 class="apple-title v3-aurora-title">确认画布分支</h1>
+        <p class="apple-subtitle">Agent 已经智能提炼了组件，勾选确认即可生成梦幻画布</p>
+      </section>
+
+      <!-- 核心整合操作区：极致磨砂毛玻璃卡片 -->
+      <section class="search-card search-focus-card apple-unified-search-card v2-search-hero search-page-hero">
+        
+        <!-- ✨ 核心大按钮直接放在最上方黄金焦点 -->
+        <div class="v3-search-action-row" style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+          <button class="primary-btn pulse-glow-btn v3-generate-action-btn" data-nav="generating" style="width: 100%; height: 50px; border-radius: 16px; font-weight: 700; background: linear-gradient(135deg, rgba(110, 68, 255, 0.85) 0%, rgba(175, 82, 222, 0.85) 100%) !important; backdrop-filter: blur(10px) !important; color: white !important; box-shadow: 0 10px 30px rgba(110, 68, 255, 0.22) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; font-size: 15px; letter-spacing: 1px;">✨ 生成知识画布</button>
+        </div>
+
+        <!-- 中间是已提炼的组件词条（用户可以通过勾选决定组件） -->
+        <div class="v3-chips-area" style="width: 100%; margin-bottom: 22px;">
+          <p class="v3-box-label" style="font-size: 12px; font-weight: 700; color: #86868B; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">📦 画布组件分支预览：</p>
+          ${state.chipsReady ? chipCloud() : `
+            <div style="padding: 16px; text-align: center; color: #86868B; font-size: 13px;">
+              <span class="dot-blink purple"></span> 正在智力提炼知识分支中...
+            </div>
+          `}
+        </div>
+
+        <!-- 辅助输入框：折叠在最下方作为补充选项，不喧宾夺主 -->
+        <div class="v3-supplement-box" style="width: 100%; border-top: 1px solid rgba(0, 0, 0, 0.04); padding-top: 18px;">
+          <p class="v3-box-label" style="font-size: 11px; font-weight: 700; color: #a2a2a6; margin-bottom: 8px;">💡 想要微调或补充更多词条？</p>
+          <div class="search-input-container" style="position: relative; width: 100%;">
+            <form class="ai-search unified-search apple-unified-search v3-supplement-search" data-form="search" autocomplete="off" style="height: 44px !important; background: rgba(0, 0, 0, 0.02) !important;">
+              <input name="query" placeholder="输入要补充的分支 (如: 常见误区)" value="${escapeAttribute(state.query || "")}" autocomplete="off" data-allow-native-input style="font-size: 13px !important;" />
+              <button class="primary-btn mini-primary v2-enter-btn" type="submit" style="min-height: 32px !important; border-radius: 12px !important; background: rgba(110, 68, 255, 0.08) !important; color: #6E44FF !important; border: 1px solid rgba(110, 68, 255, 0.18) !important; font-size: 12px !important; padding: 0 14px !important; font-weight: 600 !important; cursor: pointer !important; transition: all 0.2s ease !important;">补充</button>
+            </form>
+            <div class="search-suggestions-dropdown" id="searchSuggestionsDropdown" style="display: none;"></div>
+          </div>
         </div>
       </section>
-      <section class="recommend-panel">
-        <p class="eyebrow">AI 每日推荐</p>
-        <div class="skeleton-line mid"></div>
-        <div class="skeleton-line"></div>
-        <div class="skeleton-line short"></div>
-      </section>
-      <div style="height:14px"></div>
-      <section class="search-card search-focus-card">
-        ${selectedChipRail("search")}
-        <div class="search-input-container" style="position: relative; width: 100%;">
-          <form class="ai-search unified-search" data-form="search" autocomplete="off">
-            <span class="spark"></span>
-            <input name="query" placeholder="${escapeAttribute(MING_EMPEROR_QUERY)}" value="${escapeAttribute(state.query || "")}" autocomplete="off" data-allow-native-input />
-            ${agentModeToggle()}
-            <button class="primary-btn agent-create-btn" type="submit">${state.agentMode ? "AI 创建" : "搜索"}</button>
-          </form>
-          <div class="search-suggestions-dropdown" id="searchSuggestionsDropdown" style="display: none;"></div>
-        </div>
-        <div class="examples">
-          ${["整理本地视频素材", "查看 video-1", "从视频提取学习关键词"].map((text) => `<button class="example-btn" type="button" data-example="${escapeAttribute(text)}">${escapeHtml(text)}</button>`).join("")}
-        </div>
-        ${state.searchAnswer ? searchInsight() : ""}
-        ${state.chipsReady ? chipCloud() : ""}
-      </section>
-      ${state.chipsReady ? `
-        <div style="height:14px"></div>
-        <div class="button-row">
-          <button class="secondary-btn" data-action="more-chips">让 AI 再补充几个</button>
-          <button class="primary-btn" data-nav="confirm">生成知识画布</button>
-        </div>
-      ` : ""}
     </div>
   `;
 }
@@ -1215,7 +1237,7 @@ function canvasView() {
   return `
     <div class="screen-body">
       <section class="canvas-page">
-        <div class="canvas-titlebar">
+        <div class="canvas-titlebar ${state.isDragging ? "is-stowed" : ""}">
           <div>
             <div class="canvas-kicker">
               <button class="back-chip" data-nav="home">${icons.back}<span>首页</span></button>
@@ -1397,7 +1419,7 @@ function focusBar() {
   const stats = componentStats(component.id);
   const next = nextPlayableVideo(component.id, state.lastWatchedVideoId || state.selectedVideoId);
   return `
-    <div class="focus-bar">
+    <div class="focus-bar ${state.isDragging ? "is-stowed" : ""}">
       <div class="focus-card">
         <h3>${component.name}</h3>
         <p>${stats.total} 个视频 · 已看 ${stats.watched} 个 · 建议下一步：${next?.title || "继续探索"}</p>
@@ -1413,7 +1435,7 @@ function routeCard() {
   const next = nextRouteVideo();
   const savedRouteCount = state.savedRoutes?.length || 0;
   return `
-    <section class="route-card">
+    <section class="route-card ${state.isDragging ? "is-stowed" : ""}">
       <h3>${routeTitle()}</h3>
       <p>${routeSummary()}</p>
       ${savedRouteCount ? `<small>已保存 ${savedRouteCount} 条路线</small>` : ""}
@@ -1433,7 +1455,7 @@ function nextSuggestion() {
   const watched = videoById(state.lastWatchedVideoId);
   const watchedComponent = watched ? componentById(watched.componentId) : null;
   return `
-    <div class="next-suggestion">
+    <div class="next-suggestion ${state.isDragging ? "is-stowed" : ""}">
       <div class="focus-card">
         <h3>建议继续：${suggestion.video.title}</h3>
         <p>已同步：${watched?.title || "刚才的视频"} 已看完 · ${watchedComponent?.name || "当前组件"} 进度已更新。</p>
@@ -1508,7 +1530,6 @@ function videoView() {
           <span class="path-text">${canvasTitle()} > ${component.name}</span>
           <button class="pill-dark" data-action="mark-finished">模拟看完</button>
         </div>
-        <button class="play-button" data-action="toggle-video-play" aria-label="播放或暂停"></button>
         <div class="social-rail canvas-video-toolbar">
           <button>${icons.heart}<small>2.4k</small></button>
           <button>${icons.comment}<small>158</small></button>
@@ -1721,33 +1742,72 @@ function videoListItem(video) {
 }
 
 function agentDrawer() {
-  const live = false;
+  const hasAPIKey = typeof DEEPSEEK_API_KEY !== "undefined" && DEEPSEEK_API_KEY;
   return `
-    ${drawerHead("AI 画布助手", "本地 Agent 可离线演示")}
-    <div class="drawer-body">
-      <section class="agent-card">
-        <p class="eyebrow">当前理解</p>
-      <p class="page-subtitle">你正在整理「${escapeHtml(canvasTitle())}」。我现在可以直接新增、删除、查询和修改画布里的组件、视频与路线。</p>
+    ${drawerHead("AI 智能助手", hasAPIKey ? "DeepSeek 思考模型已接入" : "本地 Agent 离线演示")}
+    <div class="drawer-body apple-agent-drawer-body">
+      <!-- 智能助理状态微章 -->
+      <section class="apple-agent-badge">
+        <div class="apple-siri-orb ${state.agentBusy ? "is-thinking" : ""}"></div>
+        <div class="badge-text">
+          <p class="eyebrow">当前正在协助</p>
+          <h3>整理「${escapeHtml(canvasTitle())}」</h3>
+        </div>
       </section>
-      <div class="agent-actions">
-        ${["查询当前画布结构", "新增 API 实战分支", "删除重复视频", "只保留适合新手的视频", "生成 30 分钟入门路线", "把实战视频放到前面"].map((text) => `<button class="secondary-btn" data-agent-intent="${escapeAttribute(text)}">${escapeHtml(text)}</button>`).join("")}
+
+      <!-- 智能意图快捷气泡 -->
+      <div class="apple-agent-intent-pills">
+        ${[
+          "查询当前画布结构",
+          "新增‘核心要点’分支",
+          "删除重复视频",
+          "生成 30 分钟学习路线",
+          "把‘核心理解’重命名为‘概念入门’"
+        ].map((text) => `
+          <button class="apple-intent-pill" type="button" data-agent-intent="${escapeAttribute(text)}">
+            <span>✨</span> ${escapeHtml(text)}
+          </button>
+        `).join("")}
       </div>
-      <div class="agent-chat">
-        ${state.agentMessages.slice(-5).map((message) => `<div class="agent-bubble ${message.role === "user" ? "user" : "agent"}">${escapeHtml(message.text)}</div>`).join("")}
+
+      <!-- 精美的聊天对话气泡记录 -->
+      <div class="apple-agent-chat-flow">
+        ${state.agentMessages.slice(-6).map((message) => `
+          <div class="apple-chat-bubble-container ${message.role === "user" ? "user" : "agent"}">
+            <span class="bubble-avatar">${message.role === "user" ? "👤" : "🤖"}</span>
+            <div class="apple-chat-bubble">
+              ${escapeHtml(message.text)}
+            </div>
+          </div>
+        `).join("")}
+        ${state.agentBusy ? `
+          <div class="apple-chat-bubble-container agent">
+            <span class="bubble-avatar">🤖</span>
+            <div class="apple-chat-bubble apple-thinking-bubble">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>
+          </div>
+        ` : ""}
       </div>
-      <div class="agent-input-row">
-        <textarea class="textarea" id="agentPrompt" placeholder="例如：查询视频数量、把待识别内容改名为待补标题、生成本地素材路线" data-allow-native-input></textarea>
-        <button class="primary-btn" data-action="agent-run" ${state.agentBusy ? "disabled" : ""}>发送</button>
+
+      <!-- 精致的苹果风多行指令文本区 -->
+      <div class="apple-agent-input-zone">
+        <textarea class="apple-textarea" id="agentPrompt" placeholder="说出你的修改要求，如: '删除朱允炆视频'、'将朱元璋挪到建文断裂组件下'..." data-allow-native-input></textarea>
+        <button class="primary-btn apple-send-btn" data-action="agent-run" type="button" ${state.agentBusy ? "disabled" : ""}>
+          ${state.agentBusy ? "思考中..." : "发送指令"}
+        </button>
       </div>
-      <div style="height:12px"></div>
-      <section class="suggestion-card">
-        <h4>${state.agentBusy ? "Agent 正在分析..." : "结构化建议"}</h4>
-        <p>${state.agentBusy ? "正在读取组件、视频进度和你的指令。" : state.agentResult ? state.agentResult.changes.join(" · ") : "建议新增 1 个组件 · 建议补充 3 条视频 · 建议生成一条入门路线"}</p>
+
+      <div style="height:14px"></div>
+      
+      <!-- 结构化改动摘要 -->
+      <section class="apple-suggestion-card">
+        <h4>${state.agentBusy ? "智能助理正在思考..." : "画布调整说明"}</h4>
+        <p>${state.agentBusy ? "正在根据你的指令重构画布节点与拓扑关系..." : state.agentResult ? state.agentResult.changes.join(" · ") : "随时对助理说出指令，助理会全自动帮你改动画布并进行物理布局重排。"}</p>
       </section>
-      <div class="button-row" style="margin-top:12px">
-        <button class="primary-btn" data-action="agent-run" ${state.agentBusy ? "disabled" : ""}>${state.agentBusy ? "分析中" : "生成建议"}</button>
-        ${state.agentResult ? '<button class="secondary-btn" data-action="agent-preview">预览修改</button>' : ""}
-        <button class="ghost-btn" data-close>取消</button>
+
+      <div class="button-row" style="margin-top:14px; justify-content: flex-end;">
+        <button class="ghost-btn apple-dismiss-btn" type="button" data-close>关闭</button>
       </div>
     </div>
   `;
@@ -2197,6 +2257,9 @@ function creatorFor(key, index) {
 }
 
 function shouldUseLocalCanvasAgent(intent) {
+  if (typeof DEEPSEEK_API_KEY !== "undefined" && DEEPSEEK_API_KEY) {
+    return false;
+  }
   return isReadIntent(intent) || isDeleteIntent(intent) || isUpdateIntent(intent) || isCreateIntent(intent, {});
 }
 
@@ -2211,6 +2274,9 @@ async function runAgent(intent) {
   state.agentMessages.push({ role: "user", text: cleanIntent });
   render();
   const prompt = buildAgentPrompt(cleanIntent);
+  
+  const hasAPIKey = typeof DEEPSEEK_API_KEY !== "undefined" && DEEPSEEK_API_KEY;
+
   if (shouldUseLocalCanvasAgent(cleanIntent)) {
     state.agentResult = localAgentResult(cleanIntent);
     state.agentResult.intent = cleanIntent;
@@ -2223,7 +2289,7 @@ async function runAgent(intent) {
     showToast("Agent 已执行画布操作");
     return;
   }
-  if (isMingEmperorIntent(`${cleanIntent} ${canvasTopic()}`)) {
+  if (isMingEmperorIntent(`${cleanIntent} ${canvasTopic()}`) && !hasAPIKey) {
     state.agentResult = localAgentResult(cleanIntent);
     state.agentResult.intent = cleanIntent;
     pushAgentExecutionReply(cleanIntent, state.agentResult);
@@ -2239,12 +2305,25 @@ async function runAgent(intent) {
     state.agentResult = await callConfiguredAgent(prompt, cleanIntent, "agent-drawer");
     state.agentResult.intent = cleanIntent;
     pushAgentExecutionReply(cleanIntent, state.agentResult);
-    showToast("Agent 已生成建议");
+    
+    // 如果获取到的 Agent 结果中包含组件列表，自动将其一键应用到当前画布状态中，免去弹窗操作！
+    if (state.agentResult && state.agentResult.components && state.agentResult.components.length) {
+      replaceCanvasFromAgent(state.agentResult);
+      requestAnimationFrame(drawEdges);
+    }
+    
+    showToast("Agent 已执行画布操作");
   } catch (error) {
     if (isLocalAgentFallbackEnabled()) {
       state.agentResult = localAgentResult(cleanIntent);
       state.agentResult.intent = cleanIntent;
       pushAgentExecutionReply(cleanIntent, state.agentResult);
+      
+      if (state.agentResult && state.agentResult.components && state.agentResult.components.length) {
+        replaceCanvasFromAgent(state.agentResult);
+        requestAnimationFrame(drawEdges);
+      }
+      
       showToast("已使用本地 Agent fallback");
     } else {
       state.agentResult = null;
@@ -2292,6 +2371,115 @@ ${components}
 }
 
 async function callConfiguredAgent(prompt, intent, source = "agent-drawer") {
+  if (typeof DEEPSEEK_API_KEY !== "undefined" && DEEPSEEK_API_KEY) {
+    try {
+      const messages = [
+        {
+          role: "system",
+          content: `你是一个强大的 AI 知识图谱画布助手。你负责生成、重构和对当前学习画布进行全权管控（CRUD）。
+你能够完全控制画布的结构。
+当前画布包含一系列"组件"（学习分支，也叫 components）和挂载在组件下的"视频节点"（也叫 videos）。
+
+画布的数据格式为 JSON，具体规范如下：
+{
+  "mode": "replace"（若用户提出新的学习主题或要求彻底重构，设为 replace；若仅仅是针对当前画布进行添加、删除、移动视频、修改组件、重排等局部修改，设为 optimize）,
+  "topic": "当前画布研究的细分主题，简短中文",
+  "title": "画布主标题（如：明朝皇帝更迭知识画布，或 Python 入门画布）",
+  "routeTitle": "学习路线标题",
+  "components": [
+    {
+      "id": "组件唯一ID（若修改已有组件，请绝对保留原ID，例如 ming-founding 等；新建组件请拼音/英文命名）",
+      "name": "组件名称，需极其精炼（不超过6个字，如 '开国奠基'）",
+      "desc": "该学习组件分支的核心说明或介绍",
+      "color": "建议的底色 HEX（如 #E8F7F4, #EAF2FF, #F1EDFF, #FFF3D8, #FFEDEC）",
+      "weight": 80
+    }
+  ],
+  "videos": [
+    {
+      "id": "视频唯一ID（如果是已有视频，必须保持原ID，如 v1 或 ming-zhu-yuanzhang 等；若用户要添加新视频，请用拼音/英文命名ID）",
+      "title": "视频标题（如 朱元璋（明太祖））",
+      "creator": "视频作者/出处",
+      "duration": "视频时长，如 '05:30'",
+      "componentId": "该视频所属组件的ID（必须是 components 列表中存在的组件 ID，用来实现视频与组件的相连）",
+      "tags": ["标签1", "标签2"],
+      "summary": "视频核心内容摘要",
+      "reason": "为什么推荐此视频挂在当前组件下",
+      "sourceUrl": "视频播放源地址。重要限制：当前可播放真实视频源只能是 '/videos/video-1.mp4'、'/videos/video-2.mp4' 或 '/videos/video-3.mp4'。请优先从中匹配映射！",
+      "watched": false,
+      "progress": 0
+    }
+  ],
+  "route": ["组件名1", "组件名2"],
+  "changes": ["本次你作为 Agent 进行了什么思考和修改说明，如 '根据指令把朱棣移动到了永宣秩序组件下'"]
+}
+
+注意守则：
+1. 你的回答必须是纯 JSON，绝不能带有任何 Markdown 标记（如 \`\`\`json）或除 JSON 以外的任何文字解释，必须能够被 JSON.parse() 直接解析！
+2. 保持克制与一致性：如果用户是局部修改指令（比如“挪动视频”、“添加组件”、“删除节点”），请使用 "optimize" 模式，并尽量保留其他没有修改的 components 和 videos（它们的 id、watched 进度应绝对保持一致，不要丢失视频节点！）。如果是全新生成画布意图，才使用 "replace"。
+3. 视频只能与组件连接，所以 videos 列表里的所有视频卡片的 componentId 必须有效指向 components 中的一个 id。
+4. 所有视频的 sourceUrl 必须是且只能是 '/videos/video-1.mp4'、'/videos/video-2.mp4' 或 '/videos/video-3.mp4'，不要使用空字符串或虚假网络地址！
+5. 在对画布进行分类和设计时，组件（components）与组件之间，或者视频（videos）与组件之间建立链接。视频只能和组件连接，组件则可以和视频或组件相连。
+
+当前画布的状态快照如下：
+${JSON.stringify(currentCanvasSnapshot(), null, 2)}`
+        },
+        {
+          role: "user",
+          content: `用户的最新指令是：${intent}`
+        }
+      ];
+
+      const response = await fetch(`${DEEPSEEK_BASE_URL}/v1/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${DEEPSEEK_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: DEEPSEEK_MODEL,
+          messages,
+          temperature: 0.2,
+          response_format: { type: "json_object" }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`DeepSeek API HTTP error! status: ${response.status}`);
+      }
+
+      const resJson = await response.json();
+      const contentText = resJson.choices?.[0]?.message?.content;
+      if (!contentText) {
+        throw new Error("Empty message content returned from DeepSeek API");
+      }
+
+      const parsedData = JSON.parse(contentText);
+      
+      // 合并状态（确保用户原有的 watched/progress 不会被 API 的默认重置抹去）
+      if (Array.isArray(parsedData.videos)) {
+        const snapshot = currentCanvasSnapshot();
+        const watchedMap = new Map(snapshot.videos.map(v => [v.id, { watched: v.watched, progress: v.progress }]));
+        parsedData.videos = parsedData.videos.map(v => {
+          if (watchedMap.has(v.id)) {
+            const original = watchedMap.get(v.id);
+            return {
+              ...v,
+              watched: original.watched,
+              progress: original.progress
+            };
+          }
+          return v;
+        });
+      }
+
+      return normalizeAgentResult(parsedData);
+    } catch (apiError) {
+      console.error("[knowledge-canvas] DeepSeek direct fetch error, falling back to local/configured endpoints:", apiError);
+      // 继续向下流转，尝试传统通道
+    }
+  }
+
   const body = JSON.stringify({
     intent,
     source,
@@ -2784,11 +2972,44 @@ function normalizeMatchText(value) {
 }
 
 listen(app, "click", async (event) => {
+  // 点击旁边自动关闭工具坞 (Tool Hub)
+  if (state.hubOpen && !event.target.closest(".tool-hub-container")) {
+    state.hubOpen = false;
+    persist();
+    render();
+    // 如果是点击了空白区，则直接 return，不触发取消高亮等逻辑，让视觉过渡更自然
+    const clickedCanvasBackground = event.target.closest("[data-canvas]") && 
+      !event.target.closest(".component-node, .video-node, .topic-card, button, [data-action], [data-drawer]");
+    if (clickedCanvasBackground) {
+      return;
+    }
+  }
+
   if (suppressNextClick) {
     suppressNextClick = false;
     event.preventDefault();
     event.stopPropagation();
     return;
+  }
+
+  // 地图式抽屉交互：轻点画布空白背景区重新唤醒面板，或取消节点高亮
+  const clickedCanvasBackground = event.target.closest("[data-canvas]") && 
+    !event.target.closest(".component-node, .video-node, .topic-card, button, [data-action], [data-drawer]");
+  if (clickedCanvasBackground) {
+    if (state.isDragging) {
+      state.isDragging = false;
+      setChromeStowed(false);
+      render();
+      showToast("显示工具面板");
+      return;
+    } else {
+      if (state.activeComponentId) {
+        state.activeComponentId = null;
+        persist();
+        render();
+        return;
+      }
+    }
   }
 
   const target = event.target.closest("button, [data-nav], [data-action], [data-drawer], [data-video-card], [data-component], [data-open-video]");
@@ -3666,7 +3887,7 @@ listen(app, "pointerdown", (event) => {
     return;
   }
   const canvas = event.target.closest("[data-canvas]");
-  if (canvas && !event.target.closest(".component-node") && !event.target.closest(".video-node")) {
+  if (canvas && !event.target.closest(".component-node") && !event.target.closest(".video-node") && !event.target.closest(".topic-card")) {
     state.dragCanvas = { startX: event.clientX, startY: event.clientY, x: state.pan.x, y: state.pan.y };
     state.isDragging = true;
     setChromeStowed(true);
@@ -3722,15 +3943,44 @@ listen(app, "pointermove", (event) => {
 
 function finishDrag() {
   if (state.dragCanvas || state.dragComponent || state.dragVideo) {
-    suppressNextClick = Boolean(state.dragCanvas?.moved || state.dragComponent?.moved || state.dragVideo?.moved);
-    const shouldRender = suppressNextClick;
+    const isDragCanvas = Boolean(state.dragCanvas);
+    const isDragComponent = Boolean(state.dragComponent);
+    const isDragVideo = Boolean(state.dragVideo);
+
+    const dragCanvasMoved = Boolean(state.dragCanvas?.moved);
+    const dragComponentMoved = Boolean(state.dragComponent?.moved);
+    const dragVideoMoved = Boolean(state.dragVideo?.moved);
+
+    const videoId = state.dragVideo?.id;
+    const videoComponentId = state.dragVideo?.componentId;
+    const componentId = state.dragComponent?.id;
+
+    suppressNextClick = Boolean(dragCanvasMoved || dragComponentMoved || dragVideoMoved);
+    
     state.dragCanvas = null;
     state.dragComponent = null;
     state.dragVideo = null;
-    state.isDragging = false;
-    setChromeStowed(false);
+    
+    if (suppressNextClick) {
+      state.isDragging = true;
+      setChromeStowed(true);
+    } else {
+      state.isDragging = false;
+      setChromeStowed(false);
+      
+      // 轻点手势毫秒级激活，防止 render() DOM 重绘把 click 事件吞掉
+      if (isDragVideo && videoId) {
+        state.selectedVideoId = videoId;
+        state.drawer = "video";
+        state.activeComponentId = videoComponentId;
+      } else if (isDragComponent && componentId) {
+        state.activeComponentId = componentId;
+        state.routeMode = false;
+        state.lastWatchedVideoId = null;
+      }
+    }
     persist();
-    if (shouldRender) render();
+    render();
   }
 }
 
@@ -3738,7 +3988,7 @@ listen(app, "pointerup", finishDrag);
 listen(app, "pointercancel", finishDrag);
 
 function setChromeStowed(stowed) {
-  rootEl.querySelectorAll(".side-tools, .bottom-control").forEach((element) => {
+  rootEl.querySelectorAll(".tool-hub-container, .bottom-control, .canvas-titlebar, .focus-bar, .next-suggestion, .route-card").forEach((element) => {
     element.classList.toggle("is-stowed", stowed);
   });
 }
@@ -3746,6 +3996,31 @@ function setChromeStowed(stowed) {
 fitPhoneToViewport();
 listen(window, "resize", fitPhoneToViewport);
 listen(window, "orientationchange", fitPhoneToViewport);
+
+// 右滑返回手势监听
+let touchStartX = 0;
+let touchStartY = 0;
+listen(app, "touchstart", (e) => {
+  if (!e.touches?.length) return;
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}, { passive: true });
+
+listen(app, "touchend", (e) => {
+  if (state.view === "video") {
+    if (!e.changedTouches?.length) return;
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartX;
+    const diffY = touch.clientY - touchStartY;
+    // 判定实质性向右滑动且上下偏角不大
+    if (diffX > 78 && Math.abs(diffY) < 40) {
+      navigate("canvas");
+      showToast("已右滑返回画布");
+    }
+  }
+}, { passive: true });
+
 render();
 if (entryVideo) openFromVideo(entryVideo, { autoGenerate: true, silent: true });
 

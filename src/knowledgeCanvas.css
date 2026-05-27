@@ -17,7 +17,7 @@
   --sage: #83c9a8;
   --shadow: 0 10px 30px rgba(20, 30, 50, 0.08);
   --hard-shadow: 0 18px 48px rgba(22, 34, 55, 0.16);
-  --font: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font: "PingFang SC", -apple-system, BlinkMacSystemFont, system-ui, "SF Pro SC", "SF Pro Text", "Helvetica Neue", sans-serif;
 }
 
 .knowledge-canvas-page * { box-sizing: border-box; }
@@ -949,10 +949,24 @@
   gap: 6px;
   padding: 0 13px;
   border-radius: 15px;
-  background: linear-gradient(135deg, rgba(131, 230, 239, 0.96), rgba(39, 208, 197, 0.96));
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(110, 68, 255, 0.15) !important;
+  color: #6E44FF !important;
+  font-weight: 600 !important;
   box-shadow:
-    0 12px 26px rgba(25, 207, 195, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    0 4px 12px rgba(110, 68, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+}
+
+.knowledge-canvas-page .layout-main-btn:hover {
+  background: rgba(110, 68, 255, 0.06) !important;
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 16px rgba(110, 68, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .knowledge-canvas-page .layout-main-btn .icon {
@@ -1899,3 +1913,1258 @@
   z-index: 9999 !important;
   background: #000 !important;
 }
+
+/* ==========================================
+   Apple premium Minimal Visual System Overrides
+   ========================================== */
+
+/* 全局极简高雅配色定义 */
+.knowledge-canvas-page {
+  --apple-bg: #F5F5F7;
+  --apple-text: #1D1D1F;
+  --apple-muted: #86868B;
+  --apple-tint: rgba(0, 122, 255, 0.1);
+  --apple-accent: #0071E3;
+  --apple-card: rgba(255, 255, 255, 0.85);
+  --apple-glass: rgba(255, 255, 255, 0.72);
+  --apple-border: rgba(0, 0, 0, 0.08);
+  --apple-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  --apple-hover-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+}
+
+/* 首页苹果风整体重构 */
+.knowledge-canvas-page .home-apple-view {
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(0, 113, 227, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(139, 124, 246, 0.04) 0%, transparent 40%),
+    var(--apple-bg) !important;
+  padding: 24px 18px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.knowledge-canvas-page .apple-welcome-head {
+  text-align: center;
+  margin-bottom: 22px;
+  animation: appleFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.knowledge-canvas-page .eyebrow-accent {
+  color: var(--apple-accent) !important;
+  font-weight: 700;
+  font-size: 13px !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px !important;
+}
+
+.knowledge-canvas-page .apple-title {
+  color: var(--apple-text);
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.2 !important;
+  margin: 0 0 8px !important;
+}
+
+.knowledge-canvas-page .apple-subtitle {
+  color: var(--apple-muted);
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  margin: 0 auto !important;
+  max-width: 90%;
+}
+
+/* 首页核心 AI 搜索对话框 */
+.knowledge-canvas-page .apple-unified-search-card {
+  border-radius: 24px !important;
+  padding: 16px !important;
+  background: var(--apple-card) !important;
+  border: 1px solid var(--apple-border) !important;
+  box-shadow: var(--apple-shadow) !important;
+  backdrop-filter: blur(20px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.2) !important;
+  margin-bottom: 20px !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.knowledge-canvas-page .apple-unified-search-card:hover {
+  box-shadow: var(--apple-hover-shadow) !important;
+  transform: translateY(-2px);
+}
+
+.knowledge-canvas-page .apple-unified-search {
+  height: 52px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+  padding: 0 6px 0 16px !important;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.knowledge-canvas-page .apple-unified-search:focus-within {
+  border-color: var(--apple-accent) !important;
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+}
+
+.knowledge-canvas-page .apple-unified-search input {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.knowledge-canvas-page .apple-create-btn {
+  border-radius: 999px !important;
+  min-height: 40px !important;
+  padding: 0 20px !important;
+  color: #fff !important;
+  background: var(--apple-text) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+}
+
+.knowledge-canvas-page .apple-create-btn:hover {
+  background: #333336 !important;
+}
+
+/* 热门案例气泡 */
+.knowledge-canvas-page .apple-examples {
+  margin-top: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.knowledge-canvas-page .examples-tag {
+  color: var(--apple-muted);
+  font-size: 11px !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.knowledge-canvas-page .examples-grid {
+  display: flex !important;
+  gap: 8px !important;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.knowledge-canvas-page .examples-grid::-webkit-scrollbar { display: none; }
+
+.knowledge-canvas-page .apple-example-chip {
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #48484a !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid transparent !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap;
+}
+
+.knowledge-canvas-page .apple-example-chip:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: var(--apple-text) !important;
+  transform: translateY(-1px);
+}
+
+/* 优雅精致的胶囊联动卡 */
+.knowledge-canvas-page .apple-state-capsules {
+  display: grid;
+  gap: 10px;
+}
+
+.knowledge-canvas-page .apple-capsule {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px !important;
+  border-radius: 20px !important;
+  background: var(--apple-card) !important;
+  border: 1px solid var(--apple-border) !important;
+  box-shadow: var(--apple-shadow) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer;
+}
+
+.knowledge-canvas-page .apple-capsule:hover {
+  box-shadow: var(--apple-hover-shadow) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.knowledge-canvas-page .capsule-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.03);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.knowledge-canvas-page .capsule-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.knowledge-canvas-page .capsule-body small {
+  color: var(--apple-muted);
+  font-size: 10px !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.knowledge-canvas-page .capsule-body strong {
+  color: var(--apple-text);
+  font-size: 13px !important;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowledge-canvas-page .capsule-progress {
+  color: var(--apple-accent);
+  font-size: 11px !important;
+  font-weight: 700;
+  background: var(--apple-tint);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.knowledge-canvas-page .capsule-action-btn {
+  border-radius: 10px !important;
+  padding: 6px 12px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--apple-text) !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s ease !important;
+}
+
+.knowledge-canvas-page .capsule-action-btn:hover {
+  background: var(--apple-text) !important;
+  color: #fff !important;
+}
+
+/* 极轻量的首页辅助底栏 */
+.knowledge-canvas-page .apple-footer-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: auto;
+}
+
+.knowledge-canvas-page .apple-footer-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px !important;
+  border-radius: 16px !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.03) !important;
+  color: #48484a !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  transition: all 0.2s ease !important;
+}
+
+.knowledge-canvas-page .apple-footer-btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--apple-text) !important;
+  transform: translateY(-1px);
+}
+
+.knowledge-canvas-page .footer-btn-icon {
+  font-size: 18px;
+}
+
+/* ==========================================
+   Apple Siri Premium Agent Panel Styles
+   ========================================== */
+.knowledge-canvas-page .apple-agent-drawer-body {
+  padding: 12px 18px 24px !important;
+  background: linear-gradient(180deg, rgba(245, 245, 247, 0.98), #FFFFFF) !important;
+}
+
+/* Siri Orb 炫光呼吸球 */
+.knowledge-canvas-page .apple-agent-badge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.knowledge-canvas-page .apple-siri-orb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #83d6ef 0%, #8b7cf6 45%, #ff7a7a 100%);
+  filter: blur(1px);
+  box-shadow: 0 0 20px rgba(139, 124, 246, 0.4);
+  transition: transform 0.5s ease;
+  animation: siriSlowSpin 8s linear infinite;
+}
+
+.knowledge-canvas-page .apple-siri-orb.is-thinking {
+  animation: siriPulse 1.2s ease-in-out infinite alternate, siriSlowSpin 2s linear infinite;
+  box-shadow: 0 0 30px rgba(255, 122, 122, 0.7);
+}
+
+.knowledge-canvas-page .badge-text h3 {
+  margin: 2px 0 0 !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: var(--apple-text);
+}
+
+/* 快捷指令胶囊气泡 */
+.knowledge-canvas-page .apple-agent-intent-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 16px;
+  padding: 4px 0;
+}
+
+.knowledge-canvas-page .apple-agent-intent-pills::-webkit-scrollbar { display: none; }
+
+.knowledge-canvas-page .apple-intent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px !important;
+  border-radius: 999px !important;
+  background: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #48484a !important;
+  white-space: nowrap;
+  transition: all 0.2s ease !important;
+}
+
+.knowledge-canvas-page .apple-intent-pill:hover {
+  background: var(--apple-text) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px);
+}
+
+/* 精美聊天对话流 */
+.knowledge-canvas-page .apple-agent-chat-flow {
+  height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 10px 4px !important;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.02);
+  scrollbar-width: none;
+}
+
+.knowledge-canvas-page .apple-agent-chat-flow::-webkit-scrollbar { display: none; }
+
+.knowledge-canvas-page .apple-chat-bubble-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 85%;
+  animation: appleBubbleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.knowledge-canvas-page .apple-chat-bubble-container.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.knowledge-canvas-page .bubble-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.04);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.knowledge-canvas-page .apple-chat-bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 12px !important;
+  line-height: 1.45;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.knowledge-canvas-page .apple-chat-bubble-container.agent .apple-chat-bubble {
+  background: #FFFFFF;
+  color: var(--apple-text);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.015);
+  border-top-left-radius: 4px;
+}
+
+.knowledge-canvas-page .apple-chat-bubble-container.user .apple-chat-bubble {
+  background: var(--apple-text);
+  color: #FFFFFF;
+  border-top-right-radius: 4px;
+}
+
+/* 思考小圆点律动 */
+.knowledge-canvas-page .apple-thinking-bubble {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 12px 18px !important;
+}
+
+.knowledge-canvas-page .apple-thinking-bubble .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--apple-muted);
+  animation: appleDotBounce 1.4s infinite ease-in-out both;
+}
+
+.knowledge-canvas-page .apple-thinking-bubble .dot:nth-child(1) { animation-delay: -0.32s; }
+.knowledge-canvas-page .apple-thinking-bubble .dot:nth-child(2) { animation-delay: -0.16s; }
+
+/* 文本指令录入区 */
+.knowledge-canvas-page .apple-agent-input-zone {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.knowledge-canvas-page .apple-textarea {
+  min-height: 48px !important;
+  height: 48px;
+  max-height: 48px;
+  border-radius: 16px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  background: #FFFFFF !important;
+  padding: 12px 14px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--apple-text);
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s ease !important;
+}
+
+.knowledge-canvas-page .apple-textarea:focus {
+  border-color: var(--apple-accent) !important;
+}
+
+.knowledge-canvas-page .apple-send-btn {
+  border-radius: 16px !important;
+  padding: 0 16px !important;
+  background: var(--apple-text) !important;
+  color: #FFFFFF !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+.knowledge-canvas-page .apple-send-btn:disabled {
+  background: var(--apple-muted) !important;
+  cursor: wait;
+}
+
+/* 变更说明摘要卡 */
+.knowledge-canvas-page .apple-suggestion-card {
+  padding: 12px 16px !important;
+  border-radius: 18px !important;
+  background: rgba(0, 113, 227, 0.03) !important;
+  border: 1px solid rgba(0, 113, 227, 0.06) !important;
+}
+
+.knowledge-canvas-page .apple-suggestion-card h4 {
+  margin: 0 0 4px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: var(--apple-accent);
+}
+
+.knowledge-canvas-page .apple-suggestion-card p {
+  margin: 0 !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  color: #48484a;
+  font-weight: 500;
+}
+
+.knowledge-canvas-page .apple-dismiss-btn {
+  border-radius: 12px !important;
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  background: rgba(0,0,0,0.03) !important;
+  color: #48484a !important;
+}
+
+/* ==========================================
+   Apple Animation Keyframes
+   ========================================== */
+@keyframes appleFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes appleBubbleIn {
+  from { opacity: 0; transform: scale(0.9) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes siriSlowSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes siriPulse {
+  from { transform: scale(1); filter: blur(1px); }
+  to { transform: scale(1.12); filter: blur(2px); }
+}
+
+@keyframes appleDotBounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1.0); }
+}
+
+@keyframes v3AuraMotion {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes auroraTitleGlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.knowledge-canvas-page .home-apple-view.v2-focus-mode {
+  justify-content: center;
+  align-items: center;
+  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 0 24px !important;
+  position: relative;
+  background: linear-gradient(135deg, #f5ecfc 0%, #edf3fe 35%, #e3faf4 70%, #fef8eb 100%) !important;
+  background-size: 400% 400% !important;
+  animation: v3AuraMotion 22s ease infinite !important;
+}
+
+.knowledge-canvas-page .home-apple-view.v2-focus-mode::before {
+  content: "";
+  position: absolute;
+  top: -15%;
+  left: -15%;
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 219, 255, 0.45) 0%, rgba(220, 232, 255, 0) 70%);
+  filter: blur(55px);
+  z-index: 0;
+  pointer-events: none;
+  animation: siriPulse 7s ease-in-out infinite alternate;
+}
+
+.knowledge-canvas-page .home-apple-view.v2-focus-mode::after {
+  content: "";
+  position: absolute;
+  bottom: -15%;
+  right: -15%;
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(224, 246, 239, 0.45) 0%, rgba(239, 219, 255, 0) 70%);
+  filter: blur(55px);
+  z-index: 0;
+  pointer-events: none;
+  animation: siriPulse 9s ease-in-out infinite alternate-reverse;
+}
+
+.knowledge-canvas-page .v3-aurora-head {
+  text-align: center;
+  margin-bottom: 22px;
+  z-index: 1;
+}
+
+.knowledge-canvas-page .v3-aurora-title {
+  font-family: "PingFang SC", -apple-system, sans-serif !important;
+  font-size: 34px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  background: linear-gradient(90deg, #1D1D1F 0%, #5e35b1 30%, #af52de 60%, #1D1D1F 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: auroraTitleGlow 7s linear infinite !important;
+  margin: 6px 0 10px 0 !important;
+  line-height: 1.15 !important;
+}
+
+.knowledge-canvas-page .v3-aurora-head p.apple-subtitle {
+  color: #515154 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+}
+
+.knowledge-canvas-page .v3-aurora-head p.eyebrow-accent {
+  color: #6E44FF !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+  margin: 0 !important;
+  text-transform: uppercase;
+}
+
+/* 极致雅致的当前状态指示胶囊条 */
+.knowledge-canvas-page .apple-status-indicators {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 20px;
+  animation: appleFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.knowledge-canvas-page .indicator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  color: #515154 !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.knowledge-canvas-page .indicator-pill:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-1px);
+}
+
+.knowledge-canvas-page .indicator-pill .action-txt {
+  color: var(--apple-accent) !important;
+  margin-left: 2px;
+  font-weight: 800;
+}
+
+/* 状态微点呼吸 */
+.knowledge-canvas-page .dot-blink {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.knowledge-canvas-page .dot-blink.green {
+  background: #34C759;
+  box-shadow: 0 0 8px rgba(52, 199, 89, 0.6);
+}
+
+.knowledge-canvas-page .dot-blink.purple {
+  background: #AF52DE;
+  box-shadow: 0 0 8px rgba(175, 82, 222, 0.6);
+}
+
+/* 首页核心 AI 探索区大重塑：极致磨砂毛玻璃，高档微白微晶描边 */
+.knowledge-canvas-page .apple-unified-search-card.v2-search-hero {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px !important;
+  border-radius: 28px !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(25px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  z-index: 1;
+}
+
+.knowledge-canvas-page .apple-unified-search.v2-huge-search,
+.knowledge-canvas-page .apple-unified-search.v3-huge-search {
+  height: 64px !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  padding-left: 18px !important;
+  padding-right: 8px !important;
+  gap: 12px !important;
+}
+
+.knowledge-canvas-page .apple-unified-search.v3-huge-search input {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: #1D1D1F !important;
+  font-family: "PingFang SC", sans-serif !important;
+  flex: 1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+}
+
+.knowledge-canvas-page .apple-unified-search.v2-huge-search:focus-within,
+.knowledge-canvas-page .apple-unified-search.v3-huge-search:focus-within {
+  background: #FFFFFF !important;
+  border-color: #6E44FF !important;
+  box-shadow: 0 0 0 4px rgba(110, 68, 255, 0.08), 0 12px 30px rgba(110, 68, 255, 0.04) !important;
+}
+
+/* 极细精美发送箭头 */
+.knowledge-canvas-page .v3-send-arrow-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #6E44FF 0%, #8B5CF6 100%) !important;
+  color: #FFFFFF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(110, 68, 255, 0.15) !important;
+}
+
+.knowledge-canvas-page .v3-send-arrow-btn:hover {
+  background: linear-gradient(135deg, #7C3AED 0%, #9061F9 100%) !important;
+  transform: scale(1.06);
+  box-shadow: 0 6px 16px rgba(110, 68, 255, 0.3) !important;
+}
+
+.knowledge-canvas-page .v3-send-arrow-btn svg {
+  stroke: currentColor;
+  transition: transform 0.2s ease;
+}
+
+.knowledge-canvas-page .v3-send-arrow-btn:hover svg {
+  transform: translateY(-2px);
+}
+
+.knowledge-canvas-page .apple-create-btn.v2-enter-btn {
+  border-radius: 12px !important;
+  min-height: 40px !important;
+  background: #1D1D1F !important;
+}
+
+.knowledge-canvas-page .v2-examples-line {
+  margin-top: 18px !important;
+  justify-content: flex-start !important;
+}
+
+/* 极简首页小巧底栏 V3 (苹果胶囊悬浮风) */
+.knowledge-canvas-page .v2-compact-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 40px;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(20px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
+  padding: 6px 14px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  animation: appleFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.knowledge-canvas-page .footer-icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent !important;
+  color: #444446 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  font-family: "PingFang SC", sans-serif !important;
+  padding: 8px 14px !important;
+  border-radius: 16px !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.knowledge-canvas-page .footer-icon-btn:hover {
+  color: #1D1D1F !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+.knowledge-canvas-page .v3-footer-svg {
+  color: #5b5b5f;
+  transition: color 0.2s;
+}
+
+.knowledge-canvas-page .footer-icon-btn:hover .v3-footer-svg {
+  color: #1D1D1F;
+}
+
+.knowledge-canvas-page .footer-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ========================================================
+   苹果 iOS 控制中心式悬浮工具箱 (彻底解决图一凌乱问题)
+   ======================================================== */
+
+.knowledge-canvas-page .tool-hub-container {
+  position: absolute;
+  left: 16px;
+  bottom: 84px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease !important;
+}
+
+.knowledge-canvas-page .tool-hub-container.is-stowed {
+  transform: translateX(-80px) !important;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* 精致 Siri 圆形触发按钮 */
+.knowledge-canvas-page .floating-hub-trigger {
+  width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #1D1D1F !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.knowledge-canvas-page .floating-hub-trigger span {
+  display: none !important; /* 彻底去除大文字 */
+}
+
+.knowledge-canvas-page .floating-hub-trigger svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.knowledge-canvas-page .floating-hub-trigger:hover,
+.knowledge-canvas-page .floating-hub-trigger.active {
+  background: #1D1D1F !important;
+  color: #FFFFFF !important;
+  transform: scale(1.06) rotate(90deg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16) !important;
+}
+
+/* Siri 工具箱抽屉面板：默认完全隐藏，只有 active 时优雅展开 */
+.knowledge-canvas-page .tool-hub-panel {
+  display: block !important;
+  position: absolute;
+  bottom: 56px;
+  left: 0;
+  width: 200px;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(25px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(1.2) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 20px !important;
+  padding: 12px !important;
+  transform: translateY(10px) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease !important;
+}
+
+.knowledge-canvas-page .tool-hub-panel.is-open {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.knowledge-canvas-page .hub-category {
+  margin-bottom: 12px;
+}
+
+.knowledge-canvas-page .hub-category:last-child {
+  margin-bottom: 0;
+}
+
+.knowledge-canvas-page .hub-category-title {
+  font-size: 10px !important;
+  font-weight: 700;
+  color: #86868B !important;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  padding-left: 6px;
+}
+
+.knowledge-canvas-page .hub-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 按钮行内排列 */
+.knowledge-canvas-page .hub-action-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  padding: 8px 10px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #1D1D1F !important;
+  background: transparent !important;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.knowledge-canvas-page .hub-action-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 2.2;
+}
+
+.knowledge-canvas-page .hub-action-btn:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  transform: translateX(2px);
+}
+
+/* ========================================================
+   地图级“滑动沉浸”：控制栏、标题栏 stowed 退隐动画
+   ======================================================== */
+
+.knowledge-canvas-page .canvas-titlebar {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease !important;
+}
+
+.knowledge-canvas-page .canvas-titlebar.is-stowed {
+  transform: translateY(-80px) !important;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.knowledge-canvas-page .bottom-control {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease !important;
+  z-index: 998 !important;
+}
+
+.knowledge-canvas-page .bottom-control.is-stowed {
+  transform: translateY(80px) !important;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* 苹果风底部控制台大改版 */
+.knowledge-canvas-page .bottom-control {
+  grid-template-columns: auto auto auto 1fr auto !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
+  padding: 6px 8px !important;
+  min-height: 48px !important;
+  left: 16px !important;
+  right: 16px !important;
+}
+
+.knowledge-canvas-page .bottom-control button,
+.knowledge-canvas-page .zoom-label {
+  min-height: 34px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #1D1D1F !important;
+  border-radius: 12px !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.2s;
+}
+
+.knowledge-canvas-page .bottom-control button:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+.knowledge-canvas-page .zoom-label {
+  padding: 0 8px;
+  background: transparent !important;
+  color: #86868B !important;
+}
+
+/* 控制底栏按钮微调 */
+.knowledge-canvas-page .bottom-control button[data-action="center"] {
+  background: transparent !important;
+  color: #86868B !important;
+}
+
+.knowledge-canvas-page .bottom-control button[data-action="center"]:hover {
+  color: #1D1D1F !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+.knowledge-canvas-page .bottom-control button[data-action="route"] {
+  background: linear-gradient(135deg, #6E44FF 0%, #8B5CF6 100%) !important;
+  color: #FFFFFF !important;
+  padding: 0 14px !important;
+  box-shadow: 0 4px 10px rgba(110, 68, 255, 0.2) !important;
+  border: none !important;
+}
+
+.knowledge-canvas-page .bottom-control button[data-action="route"]:hover {
+  background: linear-gradient(135deg, #7C3AED 0%, #9061F9 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(110, 68, 255, 0.3) !important;
+}
+
+/* ========================================================
+   极清透微晶玻璃连线与组件卡片 (淘汰刺眼蓝色)
+   ======================================================== */
+
+.knowledge-canvas-page .canvas-board {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.05) 1px, transparent 1.4px),
+    linear-gradient(180deg, #FFFFFF 0%, #F5F5F7 100%) !important;
+  background-size: 22px 22px !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.01) !important;
+}
+
+/* 全新极细钛灰高雅连线 */
+.knowledge-canvas-page .canvas-lines path {
+  stroke: rgba(110, 68, 255, 0.12) !important;
+  stroke-width: 1.2 !important;
+  transition: stroke 0.3s, stroke-width 0.3s;
+}
+
+.knowledge-canvas-page .canvas-lines path.route {
+  stroke: url(#routeGradient) !important;
+  stroke: #6E44FF !important;
+  stroke-width: 2.2 !important;
+  filter: drop-shadow(0 2px 6px rgba(110, 68, 255, 0.15));
+}
+
+.knowledge-canvas-page .canvas-lines .soft-line {
+  stroke: rgba(0, 0, 0, 0.03) !important;
+}
+
+/* 玻璃拟物卡片 V4：全应用视觉大一统，极润高透磨砂微晶 */
+.knowledge-canvas-page .topic-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(245, 240, 255, 0.85) 100%) !important;
+  backdrop-filter: blur(25px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 12px 36px rgba(110, 68, 255, 0.08) !important;
+  border-radius: 20px !important;
+  padding: 20px !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.knowledge-canvas-page .topic-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.9),
+    0 16px 44px rgba(110, 68, 255, 0.12) !important;
+}
+
+.knowledge-canvas-page .component-node {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(15px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 30px rgba(110, 68, 255, 0.04) !important;
+  border-radius: 16px !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.knowledge-canvas-page .component-node:hover,
+.knowledge-canvas-page .component-node.active {
+  transform: translateY(-2px) scale(1.02);
+  background: #FFFFFF !important;
+  box-shadow: 0 14px 32px rgba(110, 68, 255, 0.08) !important;
+  border-color: rgba(110, 68, 255, 0.3) !important;
+}
+
+.knowledge-canvas-page .video-node {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(140%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 20px rgba(0, 0, 0, 0.02) !important;
+  border-radius: 14px !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.knowledge-canvas-page .video-node:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: #FFFFFF !important;
+  box-shadow: 0 12px 28px rgba(110, 68, 255, 0.06) !important;
+  border-color: rgba(110, 68, 255, 0.2) !important;
+}
+
+/* 回收与重组聚焦面板 V2 */
+.knowledge-canvas-page .focus-bar {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(25px) saturate(1.8) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(1.8) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 16px 44px rgba(0, 0, 0, 0.08) !important;
+  bottom: 80px !important;
+  left: 16px !important;
+  right: 16px !important;
+  padding: 12px 16px !important;
+  gap: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.knowledge-canvas-page .focus-bar button {
+  min-height: 36px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.knowledge-canvas-page .focus-bar .primary-btn {
+  background: linear-gradient(135deg, #6E44FF 0%, #8B5CF6 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(110, 68, 255, 0.2) !important;
+  border: none !important;
+}
+
+.knowledge-canvas-page .focus-bar .primary-btn:hover {
+  background: linear-gradient(135deg, #7C3AED 0%, #9061F9 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(110, 68, 255, 0.3) !important;
+}
+
+.knowledge-canvas-page .focus-bar .secondary-btn {
+  background: rgba(110, 68, 255, 0.06) !important;
+  color: #6E44FF !important;
+  border: 1px solid rgba(110, 68, 255, 0.15) !important;
+}
+
+.knowledge-canvas-page .focus-bar .secondary-btn:hover {
+  background: rgba(110, 68, 255, 0.1) !important;
+  transform: translateY(-1px);
+}
+
+.knowledge-canvas-page .focus-bar .ghost-btn {
+  background: transparent !important;
+  color: #86868B !important;
+  border: none !important;
+}
+
+.knowledge-canvas-page .focus-bar .ghost-btn:hover {
+  color: #1D1D1F !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+/* ========================================================
+   V4 视觉与交互增强：位置智能避让与全域流光配色一统
+   ======================================================== */
+
+/* 全景标题栏隐退过渡 */
+.knowledge-canvas-page .canvas-titlebar {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease !important;
+}
+
+.knowledge-canvas-page .canvas-titlebar.is-stowed {
+  transform: translateY(-100px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 地图级滑动全要素滑出退隐过渡 */
+.knowledge-canvas-page .focus-bar, 
+.knowledge-canvas-page .next-suggestion, 
+.knowledge-canvas-page .route-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.knowledge-canvas-page .focus-bar.is-stowed, 
+.knowledge-canvas-page .next-suggestion.is-stowed, 
+.knowledge-canvas-page .route-card.is-stowed {
+  transform: translateY(160px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* 工具箱避开底部聚焦功能条（带高品苹果弹性过渡） */
+.knowledge-canvas-page .tool-hub-container {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease !important;
+}
+
+.knowledge-canvas-page .canvas-page:has(.focus-bar) .tool-hub-container,
+.knowledge-canvas-page .canvas-page:has(.route-card) .tool-hub-container,
+.knowledge-canvas-page .canvas-page:has(.next-suggestion) .tool-hub-container {
+  transform: translateY(-130px) !important;
+}
+
+/* 融合页面中的大按钮微发光与苹果高雅渐变配合 */
+.knowledge-canvas-page .pulse-glow-btn {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  background: linear-gradient(135deg, rgba(110, 68, 255, 0.9) 0%, rgba(175, 82, 222, 0.9) 100%) !important;
+}
+
+.knowledge-canvas-page .pulse-glow-btn:hover {
+  transform: translateY(-2px) scale(1.01) !important;
+  box-shadow: 0 12px 36px rgba(110, 68, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  filter: brightness(1.1) !important;
+}
+
+.knowledge-canvas-page .v3-more-chips-btn:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(110, 68, 255, 0.25) !important;
+  color: #6E44FF !important;
+}
+
+
