@@ -1307,6 +1307,20 @@
 
 .knowledge-canvas-page .route-card h3 { margin: 0 0 6px; font-size: 16px; }
 .knowledge-canvas-page .route-card p { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+.knowledge-canvas-page .route-card small { display: block; margin: 0 0 10px; color: var(--muted); font-size: 11px; }
+.knowledge-canvas-page .route-share-card {
+  max-height: 92px;
+  margin: 0 0 12px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid rgba(24, 38, 55, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(248, 250, 252, 0.92);
+  color: var(--text);
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
 
 .knowledge-canvas-page .drawer-backdrop, .knowledge-canvas-page .modal-backdrop {
   position: absolute;

@@ -6,12 +6,14 @@ import {
 } from './canvasRecommendation.js'
 
 const API_BASE_URL = '';
+const ENABLE_REMOTE_AGENT = false;
 
-const STORE_KEY = "knowledge-canvas-demo-v23";
+const STORE_KEY = "knowledge-canvas-demo-v24";
 const LOCAL_AGENT_FALLBACK_KEY = "knowledge-canvas-local-agent-fallback";
 const AGENT_API_PATH = "/api/knowledge-canvas/agent";
 const LOCAL_AGENT_API_BASE = "http://127.0.0.1:5174";
 const MING_EMPEROR_QUERY = "我想要了解明朝皇帝更迭";
+const DEMO_VIDEO_SOURCES = ["/videos/video-1.mp4", "/videos/video-2.mp4", "/videos/video-3.mp4"];
 
 const MING_EMPEROR_VIDEO_DATA = [
   { id: "ming-zhu-yuanzhang", name: "朱元璋", reign: "洪武", years: "1368-1398", group: "founding", file: "朱元璋.mp4", cover: "朱元璋.jpg", role: "明太祖", summary: "从布衣到开国皇帝，建立明朝并重塑中央集权。" },
@@ -31,6 +33,207 @@ const MING_COMPONENTS = [
   { id: "ming-succession", name: "更迭主线", desc: "只根据现有皇帝介绍视频串起继承、夺位、复辟的主干脉络。", color: "#FFF3D8", line: "#F2C36B", weight: 94, groups: ["founding", "transition", "yongxuan", "mid_crisis"] },
 ];
 
+export function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+export function escapeAttribute(value) {
+  return escapeHtml(value).replaceAll("`", "&#096;");
+}
+
+export function escapeCssUrl(value) {
+  return encodeURI(String(value ?? "")).replace(/[()"'\\{}]/g, (char) => {
+    return `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`;
+  });
+}
+
+function staticAgentApiEndpoints() {
+  if (!ENABLE_REMOTE_AGENT) return [];
+  const endpoints = [];
+  const configuredBase = String(API_BASE_URL || "").replace(/\/+$/, "");
+  if (configuredBase) endpoints.push(`${configuredBase}${AGENT_API_PATH}`);
+  endpoints.push(AGENT_API_PATH);
+  endpoints.push(`${LOCAL_AGENT_API_BASE}${AGENT_API_PATH}`);
+  return [...new Set(endpoints)];
+}
+
+function buildStaticMingEmperorCanvasResult(intent = MING_EMPEROR_QUERY) {
+  const components = MING_COMPONENTS.slice(0, 4).map((component) => ({
+    id: component.id,
+    name: component.name,
+    desc: component.desc,
+    color: component.color,
+    line: component.line,
+    weight: component.weight,
+  }));
+  const componentByGroup = new Map();
+  MING_COMPONENTS.slice(0, 4).forEach((component) => {
+    component.groups.forEach((group) => componentByGroup.set(group, component));
+  });
+  const videos = MING_EMPEROR_VIDEO_DATA.map((emperor, index) => {
+    const component = componentByGroup.get(emperor.group) || components[0];
+    return {
+      id: emperor.id,
+      title: `${emperor.name}（${emperor.role}）`,
+      creator: "明朝皇帝介绍视频",
+      duration: "待识别",
+      componentId: component.id,
+      componentName: component.name,
+      tags: ["明朝皇帝", emperor.name, emperor.reign, component.name],
+      summary: `${emperor.years} · ${emperor.summary}`,
+      reason: `它是「${component.name}」分类下已有的皇帝介绍视频，可作为理解更迭关系的节点。`,
+      progress: 0,
+      watched: false,
+      coverType: `ming-${index}`,
+      coverImage: "",
+      sourceUrl: DEMO_VIDEO_SOURCES[index % DEMO_VIDEO_SOURCES.length],
+      fileName: DEMO_VIDEO_SOURCES[index % DEMO_VIDEO_SOURCES.length].replace("/videos/", ""),
+      next: index === 0,
+      source: index === 0,
+    };
+  });
+  return {
+    mode: "replace",
+    topic: "明朝皇帝更迭",
+    title: "明朝皇帝更迭知识画布",
+    routeTitle: "从洪武到夺门的皇位更迭路线",
+    components,
+    videos,
+    route: components.map((item) => item.name),
+    changes: [
+      `识别意图：${intent || MING_EMPEROR_QUERY}`,
+      "仅使用已有皇帝介绍视频生成标签和节点",
+      "按开国、建文断裂、永宣秩序、土木堡到夺门分类",
+      "静态演示模式下复用现有本地 mp4 播放源",
+    ],
+  };
+}
+
+function cloneValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function layoutComponentsForState(components) {
+  const positions = {
+    basics: [318, 126],
+    api: [452, 302],
+    models: [198, 430],
+    agent: [396, 438],
+    cases: [318, 548],
+  };
+  return components.map((component, index) => {
+    const [x, y] = positions[component.id] || [318 + (index % 2 ? 120 : -120), 160 + index * 48];
+    return { ...component, x, y };
+  });
+}
+
+function createDemoState() {
+  const components = layoutComponentsForState(cloneValue(KNOWLEDGE_DATA.components));
+  return {
+    canvas: { ...cloneValue(KNOWLEDGE_DATA.topic), ...defaultCanvasForState("本地视频") },
+    components,
+    videos: cloneValue(KNOWLEDGE_DATA.videos),
+    savedRoutes: [],
+    routeVideoIds: [],
+    routeShareText: "",
+    routeIds: KNOWLEDGE_DATA.topic.route.filter((id) => components.some((component) => component.id === id)),
+    selectedVideoId: "v1",
+    activeComponentId: null,
+    routeMode: false,
+  };
+}
+
+function defaultCanvasForState(topic) {
+  return {
+    topic,
+    title: `${topic} 学习路线图`,
+    routeTitle: `${topic} 30 分钟入门路线`,
+  };
+}
+
+function activeRouteIdsForState(state) {
+  if (Array.isArray(state.routeIds) && state.routeIds.length) return state.routeIds;
+  return KNOWLEDGE_DATA.topic.route.filter((id) => state.components?.some((component) => component.id === id));
+}
+
+function routeSnapshotForState(state) {
+  const componentIds = activeRouteIdsForState(state);
+  const videoIds = Array.isArray(state.routeVideoIds) && state.routeVideoIds.length
+    ? state.routeVideoIds
+    : componentIds
+      .map((componentId) => state.videos?.find((video) => video.componentId === componentId)?.id)
+      .filter(Boolean);
+  return {
+    id: `route-${Date.now()}`,
+    title: state.canvas?.routeTitle || `${state.canvas?.topic || "当前主题"} 学习路线`,
+    topic: state.canvas?.topic || "当前主题",
+    componentIds,
+    componentNames: componentIds.map((id) => state.components?.find((component) => component.id === id)?.name || id),
+    videoIds: [...new Set(videoIds)],
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function saveCurrentRouteState(state) {
+  const snapshot = routeSnapshotForState(state);
+  state.savedRoutes = [snapshot, ...(state.savedRoutes || []).filter((route) => route.id !== snapshot.id)].slice(0, 12);
+  return snapshot;
+}
+
+function joinSelectedVideoToRouteState(state, videoId = state.selectedVideoId) {
+  const video = state.videos?.find((item) => item.id === videoId);
+  if (!video) return null;
+  state.routeVideoIds = [...new Set([...(state.routeVideoIds || []), video.id])];
+  state.routeIds = [...new Set([...(state.routeIds || activeRouteIdsForState(state)), video.componentId])].filter(Boolean);
+  state.routeMode = true;
+  return { videoId: video.id, componentId: video.componentId };
+}
+
+function toggleActiveComponentLockState(state) {
+  const component = state.components?.find((item) => item.id === state.activeComponentId);
+  if (!component) return null;
+  component.locked = !component.locked;
+  return component;
+}
+
+function reflowComponentsForState(state) {
+  const center = { x: 380, y: 360 };
+  const radiusX = 226;
+  const radiusY = 258;
+  state.components.forEach((component, index) => {
+    if (component.locked) return;
+    const angle = (-90 + index * (360 / state.components.length)) * Math.PI / 180;
+    const pull = (component.weight - 70) * 0.45;
+    component.x = Math.round(center.x + Math.cos(angle) * (radiusX - pull) - 64);
+    component.y = Math.round(center.y + Math.sin(angle) * (radiusY - pull) - 36);
+  });
+}
+
+function buildRouteShareText(route) {
+  const names = route.componentNames?.join(" -> ") || "学习路线";
+  const videos = route.videoIds?.join(", ") || "暂无视频";
+  return `${route.title}\n主题：${route.topic}\n路线：${names}\n视频：${videos}`;
+}
+
+export const __test__ = {
+  agentApiEndpoints: staticAgentApiEndpoints,
+  buildMingEmperorCanvasResult: buildStaticMingEmperorCanvasResult,
+  buildRouteShareText,
+  createDemoState,
+  escapeAttribute,
+  escapeCssUrl,
+  escapeHtml,
+  joinSelectedVideoToRoute: joinSelectedVideoToRouteState,
+  reflowComponentsForState,
+  saveCurrentRoute: saveCurrentRouteState,
+  toggleActiveComponentLock: toggleActiveComponentLockState,
+};
+
 const icons = {
   menu: '<svg class="icon" viewBox="0 0 24 24"><path d="M4 7h15M4 12h12M4 17h15"/><path d="m18 15 3 2-3 2"/></svg>',
   search: '<svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>',
@@ -48,6 +251,7 @@ const icons = {
   comment: '<svg class="icon" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3 1.4-5.2A8 8 0 1 1 21 12Z"/></svg>',
   share: '<svg class="icon" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4"/></svg>',
   save: '<svg class="icon" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+  route: '<svg class="icon" viewBox="0 0 24 24"><path d="M9 18H4v-8h16v8h-5"/><path d="M12 6v8"/></svg>',
 };
 
 export function createKnowledgeCanvasApp({ app, toastEl, phoneEl, onExit, embedded = false, entryVideo = null } = {}) {
@@ -98,15 +302,18 @@ function freshState() {
     searchResults: [],
     searchAnswer: "",
     searchSource: "agent",
-    canvas: defaultCanvas("Codex"),
+    canvas: defaultCanvas("本地视频"),
     pendingResult: null,
     chipsReady: false,
     chips: DATA.topic.chips.map((name, index) => ({ id: `chip-${index}`, name, selected: true, color: chipColor(index) })),
     components: withTreeLayout(copy(DATA.components)),
     videos: copy(DATA.videos),
     savedCanvases: copy(DATA.savedCanvases),
+    savedRoutes: [],
+    routeVideoIds: [],
+    routeShareText: "",
     activeComponentId: null,
-    selectedVideoId: "v9",
+    selectedVideoId: "v1",
     drawer: null,
     modal: null,
     routeMode: false,
@@ -126,6 +333,7 @@ function freshState() {
     entryVideo: null,
     lastAutoGeneratedEntryKey: "",
     runtimeSeedVideoId: "",
+    hubOpen: false,
     agentMessages: [
       { role: "agent", text: "我可以帮你整理分支、去重视频、生成路线，也可以根据你提出的新主题直接生成一张新的知识画布。" },
     ],
@@ -195,7 +403,7 @@ async function prepareAgentTopicPlan(query, source = "search") {
   let result = null;
   let error = null;
   state.agentBusy = true;
-  if (isMingEmperorIntent(query)) {
+  if (!ENABLE_REMOTE_AGENT || isMingEmperorIntent(query)) {
     result = localAgentResult(query);
   } else {
     try {
@@ -371,7 +579,7 @@ function queueAutoGenerateFromEntryVideo() {
 async function autoGenerateFromEntryVideo() {
   if (!state.entryVideo) return;
   const key = entryVideoKey(state.entryVideo);
-  if (state.lastAutoGeneratedEntryKey === key && state.videos.length && canvasTopic() !== "Codex") return;
+  if (state.lastAutoGeneratedEntryKey === key && state.videos.length && canvasTopic() !== "本地视频") return;
   state.lastAutoGeneratedEntryKey = key;
   const runtimePlan = await buildRuntimePlanFromEntryVideo(state.entryVideo);
   if (runtimePlan) {
@@ -500,11 +708,11 @@ function openCurrentCanvas() {
 }
 
 function restoreDefaultCanvas() {
-  state.canvas = defaultCanvas("Codex");
+  state.canvas = defaultCanvas("本地视频");
   state.components = withTreeLayout(copy(DATA.components));
   state.videos = copy(DATA.videos);
   state.routeIds = DATA.topic.route.filter((id) => componentById(id));
-  state.selectedVideoId = "v9";
+  state.selectedVideoId = "v1";
 }
 
 function openSavedCanvas(id) {
@@ -552,11 +760,11 @@ function componentById(id) {
 }
 
 function canvasTitle() {
-  return state.canvas?.title || "Codex 学习路线图";
+  return state.canvas?.title || "本地视频素材画布";
 }
 
 function canvasTopic() {
-  return state.canvas?.topic || "Codex";
+  return state.canvas?.topic || "本地视频";
 }
 
 function routeTitle() {
@@ -602,7 +810,7 @@ function coverGradient(type) {
 }
 
 function videoCoverStyle(video = {}) {
-  if (video.coverImage) return `--cover:url("${encodeURI(video.coverImage)}");`;
+  if (video.coverImage) return `--cover:url("${escapeCssUrl(video.coverImage)}");`;
   return `--cover:${coverGradient(video.coverType)};`;
 }
 
@@ -646,8 +854,8 @@ function canvasTopBar() {
     <header class="top-nav canvas-topbar">
       <button class="icon-btn" data-action="back" aria-label="返回">${leftIcon}</button>
       <div class="canvas-topbar-title">
-        <b>${title}</b>
-        <span>${subtitle}</span>
+        <b>${escapeHtml(title)}</b>
+        <span>${escapeHtml(subtitle)}</span>
       </div>
       <button class="icon-btn" ${state.view === "home" ? 'data-action="new-search"' : 'data-nav="search"'} aria-label="搜索">${icons.search}</button>
     </header>
@@ -709,14 +917,14 @@ function homeView() {
           <button class="primary-btn mini-primary agent-create-btn" type="submit">AI 创建</button>
         </form>
         <div class="examples">
-          ${[MING_EMPEROR_QUERY, "帮我整理 Codex 的学习路线图", "从视频提取学习关键词"].map((text) => `<button class="example-btn" data-example="${text}">${text}</button>`).join("")}
+          ${["整理本地视频素材", "查看 video-1", "从视频提取学习关键词"].map((text) => `<button class="example-btn" data-example="${text}">${text}</button>`).join("")}
         </div>
       </section>
       <div style="height:14px"></div>
       <div class="cta-row">
         <button class="secondary-btn quiet-action" data-action="new-search">生成新画布</button>
         <button class="secondary-btn" data-nav="library">我的画布</button>
-        <button class="ghost-btn" data-open-video="v29">从视频进入</button>
+        <button class="ghost-btn" data-open-video="v1">从视频进入</button>
       </div>
     </div>
   `;
@@ -763,14 +971,17 @@ function searchView() {
       <div style="height:14px"></div>
       <section class="search-card search-focus-card">
         ${selectedChipRail("search")}
-        <form class="ai-search unified-search" data-form="search">
-          <span class="spark"></span>
-          <input name="query" placeholder="${MING_EMPEROR_QUERY}" value="${state.query || ""}" autocomplete="off" data-allow-native-input />
-          ${agentModeToggle()}
-          <button class="primary-btn agent-create-btn" type="submit">${state.agentMode ? "AI 创建" : "搜索"}</button>
-        </form>
+        <div class="search-input-container" style="position: relative; width: 100%;">
+          <form class="ai-search unified-search" data-form="search" autocomplete="off">
+            <span class="spark"></span>
+            <input name="query" placeholder="${escapeAttribute(MING_EMPEROR_QUERY)}" value="${escapeAttribute(state.query || "")}" autocomplete="off" data-allow-native-input />
+            ${agentModeToggle()}
+            <button class="primary-btn agent-create-btn" type="submit">${state.agentMode ? "AI 创建" : "搜索"}</button>
+          </form>
+          <div class="search-suggestions-dropdown" id="searchSuggestionsDropdown" style="display: none;"></div>
+        </div>
         <div class="examples">
-          ${[MING_EMPEROR_QUERY, "帮我整理 Codex 的学习路线图", "从视频提取学习关键词"].map((text) => `<button class="example-btn" type="button" data-example="${text}">${text}</button>`).join("")}
+          ${["整理本地视频素材", "查看 video-1", "从视频提取学习关键词"].map((text) => `<button class="example-btn" type="button" data-example="${escapeAttribute(text)}">${escapeHtml(text)}</button>`).join("")}
         </div>
         ${state.searchAnswer ? searchInsight() : ""}
         ${state.chipsReady ? chipCloud() : ""}
@@ -784,6 +995,72 @@ function searchView() {
       ` : ""}
     </div>
   `;
+}
+
+
+function getSearchSuggestions(query = "") {
+  const q = String(query).trim().toLowerCase();
+  const allSuggestions = [
+    "明朝皇帝更迭",
+    "朱元璋",
+    "朱棣",
+    "建文帝削藩",
+    "土木堡之变",
+    "本地视频素材",
+    "video-1",
+    "video-2",
+    "video-3",
+    "待识别内容",
+    "画布整理",
+    "本地素材路线",
+    "从视频提取学习关键词"
+  ];
+  if (!q) {
+    return allSuggestions.slice(0, 5);
+  }
+  const filtered = allSuggestions.filter(item =>
+    item.toLowerCase().includes(q)
+  );
+  return filtered.length ? filtered.slice(0, 5) : allSuggestions.slice(0, 3);
+}
+
+function showSuggestionsDropdown(queryVal) {
+  const dropdown = document.getElementById("searchSuggestionsDropdown");
+  if (!dropdown) return;
+  const suggestions = getSearchSuggestions(queryVal);
+  if (!suggestions.length) {
+    dropdown.style.display = "none";
+    return;
+  }
+  dropdown.innerHTML = suggestions.map(val => `
+    <button class="suggestion-item" type="button" data-select-suggestion="${escapeAttribute(val)}">
+      <span class="suggestion-icon">🔍</span>
+      <span class="suggestion-text">${escapeHtml(val)}</span>
+    </button>
+  `).join("");
+  dropdown.style.display = "block";
+}
+
+function selectSearchSuggestion(value) {
+  const cleanVal = String(value || "").trim();
+  if (!cleanVal) return;
+  const existing = state.chips.find(c => c.name.toLowerCase() === cleanVal.toLowerCase());
+  if (existing) {
+    existing.selected = true;
+  } else {
+    const index = state.chips.length;
+    const newChip = {
+      id: `chip-${Date.now()}-${index}`,
+      name: cleanVal,
+      selected: true,
+      color: chipColor(index)
+    };
+    state.chips.push(newChip);
+  }
+  state.chipsReady = true;
+  state.query = "";
+  persist();
+  render();
 }
 
 function agentModeToggle() {
@@ -801,15 +1078,15 @@ function searchInsight() {
         <b>${state.searchSource === "agent" ? "Agent 回答" : "搜索结果"}</b>
         <span>${state.searchSource === "agent" ? "会生成并修改画布" : "按资料线索整理"}</span>
       </div>
-      <p>${state.searchAnswer}</p>
+      <p>${escapeHtml(state.searchAnswer)}</p>
       ${state.searchResults.length ? `
         <div class="result-list">
           ${state.searchResults.map((item) => `
             <article class="result-item">
               <div>
-                <h4>${item.title}</h4>
-                <p>${item.snippet}</p>
-                <span>${item.source}</span>
+                <h4>${escapeHtml(item.title)}</h4>
+                <p>${escapeHtml(item.snippet)}</p>
+                <span>${escapeHtml(item.source)}</span>
               </div>
             </article>
           `).join("")}
@@ -831,7 +1108,7 @@ function inputView() {
       <section class="search-card">
         <form class="ai-search" data-form="input">
           <span class="spark"></span>
-          <input name="query" value="" placeholder="例如：帮我生成 Claude API 入门路线" autocomplete="off" autofocus data-allow-native-input />
+          <input name="query" value="" placeholder="例如：整理本地视频素材" autocomplete="off" autofocus data-allow-native-input />
           <button class="primary-btn" type="submit">生成</button>
         </form>
         <div class="chip-cloud">
@@ -854,8 +1131,8 @@ function chipCloud() {
     <div class="chip-cloud">
       ${state.chips.map((chip) => `
         <button class="chip ${chip.selected ? "active" : ""}" style="--chip-bg:${chip.color}" data-chip="${chip.id}" type="button">
-          <span>${chip.name}</span>
-          <span class="remove" data-remove-chip="${chip.id}">×</span>
+          <span>${escapeHtml(chip.name)}</span>
+          <span class="remove" data-remove-chip="${escapeAttribute(chip.id)}">×</span>
         </button>
       `).join("")}
     </div>
@@ -869,7 +1146,7 @@ function selectedChipRail(context = "") {
     <div class="selected-chip-rail ${context ? `selected-chip-rail-${context}` : ""}">
       <span>已选词条</span>
       <div>
-        ${selected.map((chip) => `<button class="selected-chip" style="--chip-bg:${chip.color}" data-chip="${chip.id}" type="button">${chip.name}</button>`).join("")}
+        ${selected.map((chip) => `<button class="selected-chip" style="--chip-bg:${escapeCssUrl(chip.color)}" data-chip="${escapeAttribute(chip.id)}" type="button">${escapeHtml(chip.name)}</button>`).join("")}
       </div>
     </div>
   `;
@@ -883,7 +1160,7 @@ function confirmView() {
       <section class="page-head">
         <div>
           <p class="eyebrow">确认组件</p>
-          <h1 class="page-title">${canvasTitle()}</h1>
+          <h1 class="page-title">${escapeHtml(canvasTitle())}</h1>
           <p class="page-subtitle">选中的词条将成为画布组件，AI 会为每个组件匹配相关视频。</p>
         </div>
       </section>
@@ -893,8 +1170,8 @@ function confirmView() {
           ${plan.components.map((item, index) => `
             <div class="component-preview">
               <span class="color-dot" style="--c:${item.color || chipColor(index)}"></span>
-              <b>${item.name}</b>
-              <span class="badge">${selected[index % Math.max(selected.length, 1)]?.name || "AI"}</span>
+              <b>${escapeHtml(item.name)}</b>
+              <span class="badge">${escapeHtml(selected[index % Math.max(selected.length, 1)]?.name || "AI")}</span>
             </div>
           `).join("")}
         </div>
@@ -909,8 +1186,8 @@ function generatingView() {
   return `
     <div class="generating">
       <div class="gen-stage">
-        <div class="gen-core">${canvasTopic()}<br/>学习路线图</div>
-        ${labels.map((label, index) => `<div class="gen-chip" style="left:${[36, 212, 224, 58][index]}px;top:${[84, 54, 276, 330][index]}px;background:${chipColor(index)};animation-delay:${index * 90}ms">${label}</div>`).join("")}
+        <div class="gen-core">${escapeHtml(canvasTopic())}<br/>学习路线图</div>
+        ${labels.map((label, index) => `<div class="gen-chip" style="left:${[36, 212, 224, 58][index]}px;top:${[84, 54, 276, 330][index]}px;background:${chipColor(index)};animation-delay:${index * 90}ms">${escapeHtml(label)}</div>`).join("")}
         ${[0, 1, 2, 3].map((_, index) => `<div class="gen-video" style="left:${[266, 32, 256, 88][index]}px;top:${[156, 216, 378, 18][index]}px;animation-delay:${280 + index * 80}ms"></div>`).join("")}
       </div>
       <section class="gen-copy">
@@ -963,16 +1240,38 @@ function canvasView() {
             </div>
           </div>
         </div>
-        <div class="side-tools left ${state.isDragging ? "is-stowed" : ""}">
-          <button class="tool-btn" data-drawer="weights">${icons.weight}<span>权重</span></button>
-          <button class="tool-btn" data-action="dim-nodes">${icons.hide}<span>隐藏</span></button>
-          <button class="tool-btn" data-action="delete-active">${icons.trash}<span>回收</span></button>
-        </div>
-        <div class="side-tools right ${state.isDragging ? "is-stowed" : ""}">
-          <button class="tool-btn" data-drawer="agent">${icons.agent}<span>Agent</span></button>
-          <button class="tool-btn" data-drawer="addVideo">${icons.video}<span>视频</span></button>
-          <button class="tool-btn" data-drawer="newComponent">${icons.plus}<span>组件</span></button>
-          <button class="tool-btn" data-action="reflow">${icons.grid}<span>重排</span></button>
+        <!-- Expandable Tool Hub -->
+        <div class="tool-hub-container ${state.isDragging ? "is-stowed" : ""}">
+          <button class="floating-hub-trigger ${state.hubOpen ? "active" : ""}" data-action="toggle-hub" type="button" aria-label="工具箱">
+            ${state.hubOpen ? '✕' : icons.menu}
+            <span>${state.hubOpen ? '关闭' : '工具箱'}</span>
+          </button>
+          <div class="tool-hub-panel ${state.hubOpen ? "is-open" : ""}">
+            <div class="hub-category">
+              <div class="hub-category-title">🎨 画布整理</div>
+              <div class="hub-buttons">
+                <button class="hub-action-btn" data-action="reflow">${icons.grid}<span>重排布局</span></button>
+                <button class="hub-action-btn" data-action="route">${icons.route}<span>路线高亮</span></button>
+                <button class="hub-action-btn" data-action="center">${icons.back}<span>回到中心</span></button>
+              </div>
+            </div>
+            <div class="hub-category">
+              <div class="hub-category-title">📝 节点编辑</div>
+              <div class="hub-buttons">
+                <button class="hub-action-btn" data-drawer="newComponent">${icons.plus}<span>添加组件</span></button>
+                <button class="hub-action-btn" data-drawer="addVideo">${icons.video}<span>添加视频</span></button>
+                <button class="hub-action-btn" data-action="delete-active">${icons.trash}<span>回收节点</span></button>
+              </div>
+            </div>
+            <div class="hub-category">
+              <div class="hub-category-title">🤖 智能助手</div>
+              <div class="hub-buttons">
+                <button class="hub-action-btn" data-drawer="agent">${icons.agent}<span>AI 优化</span></button>
+                <button class="hub-action-btn" data-drawer="weights">${icons.weight}<span>调整权重</span></button>
+                <button class="hub-action-btn" data-action="dim-nodes">${icons.hide}<span>聚焦分支</span></button>
+              </div>
+            </div>
+          </div>
         </div>
         ${state.activeComponentId ? focusBar() : ""}
         ${state.routeMode ? routeCard() : ""}
@@ -1011,7 +1310,7 @@ function componentNode(component) {
   return `
     <article class="component-node ${active ? "active" : ""} ${state.editMode ? "editing" : ""} ${dim ? "dimmed" : ""}"
       data-component="${component.id}" style="left:${component.x}px;top:${component.y}px;--node-bg:${component.color}">
-      <h3>${component.name}</h3>
+      <h3>${escapeHtml(component.name)}</h3>
       <p>${stats.total} 个视频 · ${stats.watched}/${stats.total}</p>
       <p>权重 ${component.weight}%</p>
     </article>
@@ -1076,8 +1375,8 @@ function videoNode(video) {
     <article class="video-node ${video.watched ? "watched" : ""} ${video.next ? "next" : ""} ${dim ? "dimmed" : ""}"
       data-video-card="${video.id}" style="left:${pos.x}px;top:${pos.y}px;${videoCoverStyle(video)}">
       <div class="video-cover"><span></span></div>
-      <h4>${video.title}</h4>
-      <div class="video-meta"><span>${video.duration}</span><span>${video.progress}%</span></div>
+      <h4>${escapeHtml(video.title)}</h4>
+      <div class="video-meta"><span>${escapeHtml(video.duration)}</span><span>${escapeHtml(video.progress)}%</span></div>
       ${video.source ? '<span class="badge">来源视频</span>' : ""}
     </article>
   `;
@@ -1103,7 +1402,7 @@ function focusBar() {
         <h3>${component.name}</h3>
         <p>${stats.total} 个视频 · 已看 ${stats.watched} 个 · 建议下一步：${next?.title || "继续探索"}</p>
       </div>
-      <button class="primary-btn" data-open-video="${next?.id || "v9"}">继续本组件</button>
+      <button class="primary-btn" data-open-video="${next?.id || "v1"}">继续本组件</button>
       <button class="secondary-btn" data-drawer="addVideo">添加视频</button>
       <button class="ghost-btn" data-drawer="agent">优化</button>
     </div>
@@ -1112,10 +1411,13 @@ function focusBar() {
 
 function routeCard() {
   const next = nextRouteVideo();
+  const savedRouteCount = state.savedRoutes?.length || 0;
   return `
     <section class="route-card">
       <h3>${routeTitle()}</h3>
       <p>${routeSummary()}</p>
+      ${savedRouteCount ? `<small>已保存 ${savedRouteCount} 条路线</small>` : ""}
+      ${state.routeShareText ? `<pre class="route-share-card">${escapeHtml(state.routeShareText)}</pre>` : ""}
       <div class="button-row">
         <button class="primary-btn" data-open-video="${next?.id || "v3"}">开始路线</button>
         <button class="secondary-btn" data-action="save-route">保存路线</button>
@@ -1194,7 +1496,7 @@ function pathMarkup(a, b, className, stroke = "") {
 }
 
 function videoView() {
-  const video = videoById(state.selectedVideoId) || videoById("v9");
+  const video = videoById(state.selectedVideoId) || videoById("v1");
   const component = componentById(video.componentId);
   const stats = componentStats(component.id);
   return `
@@ -1306,10 +1608,10 @@ function newCanvasView() {
       <section class="page-head"><div><p class="eyebrow">新建画布</p><h1 class="page-title">从一个主题开始</h1></div></section>
       <section class="new-card">
         <label class="eyebrow">画布名称</label>
-        <input class="field" id="newCanvasName" value="Codex 进阶工作流" data-allow-native-input />
+        <input class="field" id="newCanvasName" value="本地视频素材画布" data-allow-native-input />
         <div style="height:12px"></div>
         <label class="eyebrow">主题</label>
-        <input class="field" id="newCanvasTopic" value="Codex Agent 自动化" data-allow-native-input />
+        <input class="field" id="newCanvasTopic" value="本地视频整理" data-allow-native-input />
         <div class="template-grid">
           ${["入门学习型", "实战路线型", "对比研究型", "收藏整理型"].map((name, index) => `<button class="chip ${index === 1 ? "active" : ""}" style="--chip-bg:${chipColor(index)}">${name}</button>`).join("")}
         </div>
@@ -1330,7 +1632,7 @@ function emptyView() {
         <h1 class="page-title">从一个主题开始，生成你的第一张知识画布</h1>
         <input class="field" placeholder="你想学习什么？" data-allow-native-input />
         <div class="chip-cloud" style="justify-content:center">
-          ${["Codex", "Claude", "Agent", "API", "Prompt"].map((name, index) => `<button class="chip active" style="--chip-bg:${chipColor(index)}" data-example="帮我整理 ${name} 的学习路线图">${name}</button>`).join("")}
+          ${["本地视频", "video-1", "video-2", "video-3", "待整理"].map((name, index) => `<button class="chip active" style="--chip-bg:${chipColor(index)}" data-example="整理 ${name}">${name}</button>`).join("")}
         </div>
         <button class="primary-btn" data-nav="search">开始生成</button>
       </section>
@@ -1352,11 +1654,11 @@ function drawerTemplate() {
 }
 
 function drawerHead(title, eyebrow = "") {
-  return `<div class="drawer-head"><div>${eyebrow ? `<p class="eyebrow">${eyebrow}</p>` : ""}<h2>${title}</h2></div><button class="icon-btn" data-close aria-label="关闭">×</button></div>`;
+  return `<div class="drawer-head"><div>${eyebrow ? `<p class="eyebrow">${escapeHtml(eyebrow)}</p>` : ""}<h2>${escapeHtml(title)}</h2></div><button class="icon-btn" data-close aria-label="关闭">×</button></div>`;
 }
 
 function videoDrawer() {
-  const video = videoById(state.selectedVideoId) || videoById("v9");
+  const video = videoById(state.selectedVideoId) || videoById("v1");
   const component = componentById(video.componentId);
   return `
     ${drawerHead(video.title, "视频详情")}
@@ -1374,7 +1676,7 @@ function videoDrawer() {
         <button class="primary-btn" data-open-video="${video.id}">播放</button>
         <button class="secondary-btn" data-action="mark-video" data-id="${video.id}">标记已看</button>
         <button class="ghost-btn" data-action="set-next" data-id="${video.id}">设为下一步</button>
-        <button class="ghost-btn" data-action="join-route">加入路线</button>
+        <button class="ghost-btn" data-action="join-route" data-id="${video.id}">加入路线</button>
         <button class="danger-btn" data-action="remove-video" data-id="${video.id}">移出组件</button>
       </div>
     </div>
@@ -1398,7 +1700,7 @@ function componentDrawer() {
       <div class="video-list">${videos.slice(0, 6).map(videoListItem).join("")}</div>
       <div style="height:12px"></div>
       <div class="button-row">
-        <button class="primary-btn" data-open-video="${next?.id || videos[0]?.id || "v9"}">继续本组件</button>
+        <button class="primary-btn" data-open-video="${next?.id || videos[0]?.id || "v1"}">继续本组件</button>
         <button class="secondary-btn" data-drawer="addVideo">添加视频</button>
         <button class="ghost-btn" data-action="rename-component" data-id="${component.id}">重命名组件</button>
         <button class="danger-btn" data-action="delete-component" data-id="${component.id}">删除组件</button>
@@ -1425,16 +1727,16 @@ function agentDrawer() {
     <div class="drawer-body">
       <section class="agent-card">
         <p class="eyebrow">当前理解</p>
-        <p class="page-subtitle">你正在整理「${canvasTitle()}」。我现在可以直接新增、删除、查询和修改画布里的组件、视频与路线。</p>
+      <p class="page-subtitle">你正在整理「${escapeHtml(canvasTitle())}」。我现在可以直接新增、删除、查询和修改画布里的组件、视频与路线。</p>
       </section>
       <div class="agent-actions">
-        ${["查询当前画布结构", "新增 API 实战分支", "删除重复视频", "只保留适合新手的视频", "生成 30 分钟入门路线", "把实战视频放到前面"].map((text) => `<button class="secondary-btn" data-agent-intent="${text}">${text}</button>`).join("")}
+        ${["查询当前画布结构", "新增 API 实战分支", "删除重复视频", "只保留适合新手的视频", "生成 30 分钟入门路线", "把实战视频放到前面"].map((text) => `<button class="secondary-btn" data-agent-intent="${escapeAttribute(text)}">${escapeHtml(text)}</button>`).join("")}
       </div>
       <div class="agent-chat">
-        ${state.agentMessages.slice(-5).map((message) => `<div class="agent-bubble ${message.role === "user" ? "user" : "agent"}">${message.text}</div>`).join("")}
+        ${state.agentMessages.slice(-5).map((message) => `<div class="agent-bubble ${message.role === "user" ? "user" : "agent"}">${escapeHtml(message.text)}</div>`).join("")}
       </div>
       <div class="agent-input-row">
-        <textarea class="textarea" id="agentPrompt" placeholder="例如：删除土木堡之变分支、查询视频数量、把 API 分支改名为接口实践" data-allow-native-input></textarea>
+        <textarea class="textarea" id="agentPrompt" placeholder="例如：查询视频数量、把待识别内容改名为待补标题、生成本地素材路线" data-allow-native-input></textarea>
         <button class="primary-btn" data-action="agent-run" ${state.agentBusy ? "disabled" : ""}>发送</button>
       </div>
       <div style="height:12px"></div>
@@ -1478,7 +1780,7 @@ function addVideoDrawer() {
   return `
     ${drawerHead("添加视频到组件", "视频匹配")}
     <div class="drawer-body">
-      <input class="field" placeholder="搜索视频、作者或标签" value="API 自动化" data-allow-native-input />
+      <input class="field" placeholder="搜索视频、作者或标签" value="本地视频" data-allow-native-input />
       <div style="height:10px"></div>
       <select class="field" id="addComponentSelect" data-allow-native-input>
         ${state.components.map((item) => `<option value="${item.id}" ${item.id === component.id ? "selected" : ""}>${item.name}</option>`).join("")}
@@ -1555,9 +1857,9 @@ function extractModal() {
     <div class="modal-backdrop" data-close-modal></div>
     <section class="modal">
       <p class="eyebrow">从当前视频提取关键词？</p>
-      <h2>进阶课程：如何通过 API 自动化你的知识库工作流</h2>
+      <h2>本地视频素材</h2>
       <p class="page-subtitle">AI 提取关键词：</p>
-      <div class="chip-cloud">${["Claude", "API", "自动化", "Agent", "工作流", "入门"].map((name, index) => `<span class="chip active" style="--chip-bg:${chipColor(index)}">${name}</span>`).join("")}</div>
+      <div class="chip-cloud">${["本地视频", "video-1", "video-2", "video-3", "待整理", "可播放"].map((name, index) => `<span class="chip active" style="--chip-bg:${chipColor(index)}">${name}</span>`).join("")}</div>
       <div class="button-row" style="margin-top:14px">
         <button class="primary-btn" data-action="extract-generate">生成画布</button>
         <button class="secondary-btn" data-action="extract-edit">进入词条编辑</button>
@@ -1603,7 +1905,7 @@ function fallbackAgentResult() {
     mode: "optimize",
     topic: canvasTopic(),
     title: "即将优化这张画布",
-    changes: ["新增组件：错误排查", "新增视频：3 条", "生成路线：基础概念 -> CLI 使用 -> API 接入 -> 实战案例"],
+    changes: ["生成路线：本地素材 -> 待识别内容 -> 画布整理", "只使用当前 3 个本地视频文件", "提醒用户补充真实标题和标签"],
   });
 }
 
@@ -1703,11 +2005,11 @@ function inferRequestedTopic(text) {
     }
   }
   if (!topic) {
-    const keywordMatch = raw.match(/(明朝皇帝更迭|明朝皇帝|明代皇帝|明朝|皇帝更迭|AIGC|AI绘画|AI视频|机器学习|深度学习|Python|JavaScript|前端|剪映|摄影|运营|小红书|跨境电商|考研|英语|Claude|ChatGPT|DeepSeek|Agent|API|Prompt)/i);
+    const keywordMatch = raw.match(/(本地视频素材|本地视频|video-1|video-2|video-3|待识别内容|画布整理|明朝皇帝更迭|明朝皇帝|明代皇帝|明朝|皇帝更迭|AIGC|AI绘画|AI视频|机器学习|深度学习|Python|JavaScript|前端|剪映|摄影|运营|小红书|跨境电商|考研|英语)/i);
     topic = keywordMatch ? keywordMatch[1] : canvasTopic();
   }
   const normalizedCurrent = canvasTopic().toLowerCase();
-  const isNewTopic = topic && topic.toLowerCase() !== normalizedCurrent && !["api", "agent", "cli", "codex"].includes(topic.toLowerCase());
+  const isNewTopic = topic && topic.toLowerCase() !== normalizedCurrent && !["本地视频", "video-1", "video-2", "video-3"].includes(topic.toLowerCase());
   return { topic, isNewTopic };
 }
 
@@ -1724,55 +2026,7 @@ function cleanTopic(topic) {
 }
 
 function buildMingEmperorCanvasResult(intent = MING_EMPEROR_QUERY) {
-  const components = MING_COMPONENTS.slice(0, 4).map((component) => ({
-    id: component.id,
-    name: component.name,
-    desc: component.desc,
-    color: component.color,
-    line: component.line,
-    weight: component.weight,
-  }));
-  const componentByGroup = new Map();
-  MING_COMPONENTS.slice(0, 4).forEach((component) => {
-    component.groups.forEach((group) => componentByGroup.set(group, component));
-  });
-  const videos = MING_EMPEROR_VIDEO_DATA.map((emperor, index) => {
-    const component = componentByGroup.get(emperor.group) || components[0];
-    return {
-      id: emperor.id,
-      title: `${emperor.name}（${emperor.role}）`,
-      creator: "明朝皇帝介绍视频",
-      duration: "待识别",
-      componentId: component.id,
-      componentName: component.name,
-      tags: ["明朝皇帝", emperor.name, emperor.reign, component.name],
-      summary: `${emperor.years} · ${emperor.summary}`,
-      reason: `它是「${component.name}」分类下已有的皇帝介绍视频，可作为理解更迭关系的节点。`,
-      progress: 0,
-      watched: false,
-      coverType: `ming-${index}`,
-      coverImage: `/media/covers/${encodeURIComponent(emperor.cover)}`,
-      sourceUrl: `/media/videos/${encodeURIComponent(emperor.file)}`,
-      fileName: emperor.file,
-      next: index === 0,
-      source: index === 0,
-    };
-  });
-  return normalizeAgentResult({
-    mode: "replace",
-    topic: "明朝皇帝更迭",
-    title: "明朝皇帝更迭知识画布",
-    routeTitle: "从洪武到夺门的皇位更迭路线",
-    components,
-    videos,
-    route: components.map((item) => item.name),
-    changes: [
-      `识别意图：${intent || MING_EMPEROR_QUERY}`,
-      "仅使用已有皇帝介绍视频生成标签和节点",
-      "按开国、建文断裂、永宣秩序、土木堡到夺门分类",
-      "已为每位皇帝预留本地视频链接字段",
-    ],
-  });
+  return normalizeAgentResult(buildStaticMingEmperorCanvasResult(intent));
 }
 
 function buildTopicCanvasResult(topic, intent) {
@@ -1799,14 +2053,14 @@ function topicTemplates(topic, intent) {
 function topicProfile(topic, lower) {
   const profiles = [
     {
-      key: "codex",
-      test: /codex|代码 agent|编程助手/,
+      key: "code-agent",
+      test: /代码 agent|编程助手/,
       names: ["任务描述", "仓库理解", "终端执行", "补丁修改", "测试验证", "浏览器验收", "Git 协作", "失败排查"],
       verbs: ["把一句需求拆成可执行任务", "让 Agent 快速读懂项目", "在终端里跑完整闭环", "用补丁改文件不破坏旧逻辑"],
     },
     {
       key: "model",
-      test: /claude|chatgpt|deepseek|qwen|kimi|模型|大模型/,
+      test: /chatgpt|deepseek|qwen|kimi|模型|大模型/,
       names: ["模型定位", "提示词结构", "长文档处理", "API 接入", "工具调用", "成本限制", "对比选型", "实战工作流"],
       verbs: ["判断它最适合做什么", "写出稳定可复用的提问结构", "处理长文档和上下文", "把模型接进自己的工具"],
     },
@@ -1929,7 +2183,7 @@ function videoReasonFor(topic, name, profile, index) {
 
 function creatorFor(key, index) {
   const map = {
-    codex: ["工程效率派", "CLI 实战课", "前端路演工坊", "Debug 小组"],
+    "code-agent": ["工程效率派", "CLI 实战课", "前端路演工坊", "Debug 小组"],
     model: ["模型观察站", "AI 工具观察", "接口实践课", "产品实验室"],
     agent: ["自动化研究员", "Agent 方法论", "工程效率派", "产品实验室"],
     api: ["接口实践课", "架构备忘录", "AI 工具观察", "安全上线笔记"],
@@ -2034,7 +2288,7 @@ ${components}
   "route": ["组件名1","组件名2","组件名3","组件名4"],
   "changes": ["变化1","变化2","变化3"]
 }
-如果用户提到非 Codex 主题，mode 必须是 replace，并围绕该主题设计组件和视频。`;
+如果用户提到非当前主题，mode 必须是 replace，并围绕该主题设计组件和视频。`;
 }
 
 async function callConfiguredAgent(prompt, intent, source = "agent-drawer") {
@@ -2072,12 +2326,7 @@ async function callConfiguredAgent(prompt, intent, source = "agent-drawer") {
 }
 
 function agentApiEndpoints() {
-  const endpoints = [];
-  const configuredBase = String(API_BASE_URL || "").replace(/\/+$/, "");
-  if (configuredBase) endpoints.push(`${configuredBase}${AGENT_API_PATH}`);
-  endpoints.push(AGENT_API_PATH);
-  endpoints.push(`${LOCAL_AGENT_API_BASE}${AGENT_API_PATH}`);
-  return [...new Set(endpoints)];
+  return staticAgentApiEndpoints();
 }
 
 function localAgentResult(intent) {
@@ -2102,14 +2351,11 @@ function localAgentResult(intent) {
   if (inferred.isNewTopic) {
     return buildTopicCanvasResult(inferred.topic, intent);
   }
-  if (intent.includes("新手") || intent.includes("30 分钟")) {
-    return normalizeAgentResult({ mode: "optimize", topic: canvasTopic(), title: "生成新手 30 分钟路线", changes: ["高亮基础概念 -> CLI 使用 -> API 接入 -> 实战案例", "推荐 5 条最短入门视频", "把已看视频从路线中弱化"] });
+  if (intent.includes("新手") || intent.includes("30 分钟") || intent.includes("路线")) {
+    return normalizeAgentResult({ mode: "optimize", topic: canvasTopic(), title: "生成本地素材路线", changes: ["高亮本地素材 -> 待识别内容 -> 画布整理", "只推荐当前 3 个本地视频", "把已看视频从路线中弱化"] });
   }
   if (intent.includes("重复")) {
-    return normalizeAgentResult({ mode: "optimize", topic: canvasTopic(), title: "清理重复视频", changes: ["移除标题相似视频：2 条", "保留观看完成率更高的视频", "把 API 分支推荐权重提高到 92%"] });
-  }
-  if (intent.includes("API")) {
-    return normalizeAgentResult({ mode: "optimize", topic: canvasTopic(), title: "补充 API 分支", changes: ["新增组件：错误排查", "新增视频：Webhook 触发知识更新", "新增视频：API 工具调用实战"] });
+    return normalizeAgentResult({ mode: "optimize", topic: canvasTopic(), title: "清理重复视频", changes: ["当前只保留 3 个本地视频文件", "保留真实可播放素材", "不新增虚构视频标题"] });
   }
   return normalizeAgentResult(fallbackAgentResult());
 }
@@ -2655,9 +2901,21 @@ listen(app, "click", async (event) => {
     return;
   }
 
+  const selectSuggestion = event.target.closest("[data-select-suggestion]");
+  if (selectSuggestion) {
+    selectSearchSuggestion(selectSuggestion.dataset.selectSuggestion);
+    return;
+  }
+
+  if (!event.target.closest(".search-input-container")) {
+    const dropdown = document.getElementById("searchSuggestionsDropdown");
+    if (dropdown) dropdown.style.display = "none";
+  }
+
   const drawer = event.target.closest("[data-drawer]");
   if (drawer) {
     state.drawer = drawer.dataset.drawer;
+    state.hubOpen = false; // Close Tool Hub when a drawer opens
     render();
     return;
   }
@@ -2718,6 +2976,9 @@ listen(app, "input", (event) => {
   const query = event.target.closest('input[name="query"]');
   if (query) {
     state.query = query.value;
+    if (state.view === "search") {
+      showSuggestionsDropdown(query.value);
+    }
   }
   const weight = event.target.closest("[data-weight]");
   if (weight) {
@@ -2733,7 +2994,24 @@ listen(app, "input", (event) => {
   }
 });
 
+listen(app, "focusin", (event) => {
+  const queryInput = event.target.closest('input[name="query"]');
+  if (queryInput && state.view === "search") {
+    showSuggestionsDropdown(queryInput.value);
+  }
+});
+
 async function handleAction(action, el) {
+  if (action && action !== "toggle-hub") {
+    state.hubOpen = false; // Automatically close the hub when triggering other actions
+  }
+
+  if (action === "toggle-hub") {
+    state.hubOpen = !state.hubOpen;
+    persist();
+    render();
+    return;
+  }
   if (action === "back") {
     goBack();
   }
@@ -2843,7 +3121,12 @@ async function handleAction(action, el) {
     render();
     showToast("已设为下一步视频");
   }
-  if (action === "join-route") showToast("已加入当前学习路线");
+  if (action === "join-route") {
+    const joined = joinSelectedVideoToRouteState(state, el.dataset.id || state.selectedVideoId);
+    persist();
+    render();
+    showToast(joined ? "已加入当前学习路线" : "没有找到可加入的视频");
+  }
   if (action === "remove-video") {
     state.videos = state.videos.filter((video) => video.id !== el.dataset.id);
     state.drawer = null;
@@ -2869,16 +3152,32 @@ async function handleAction(action, el) {
     render();
     showToast("权重已应用，画布已重排");
   }
-  if (action === "lock-active") showToast(state.activeComponentId ? "当前组件已锁定" : "请先选择组件");
-  if (action === "save-route") showToast("路线已保存");
-  if (action === "share-route") showToast("已生成分享卡片");
+  if (action === "lock-active") {
+    const component = toggleActiveComponentLockState(state);
+    persist();
+    render();
+    showToast(component ? (component.locked ? "当前组件已锁定" : "当前组件已解锁") : "请先选择组件");
+  }
+  if (action === "save-route") {
+    saveCurrentRouteState(state);
+    persist();
+    render();
+    showToast("路线已保存");
+  }
+  if (action === "share-route") {
+    const route = saveCurrentRouteState(state);
+    state.routeShareText = buildRouteShareText(route);
+    persist();
+    render();
+    showToast("分享卡片已生成");
+  }
   if (action === "extract-generate") {
     state.modal = null;
     navigate("generating");
   }
   if (action === "extract-edit") {
     state.modal = null;
-    state.query = "从视频提取：Claude / API / 自动化 / Agent / 工作流 / 入门";
+    state.query = "从视频提取：本地视频 / video-1 / video-2 / video-3 / 待整理";
     state.chipsReady = true;
     navigate("confirm");
   }
@@ -3038,16 +3337,19 @@ function addVideoToComponent() {
   }
   state.videos.push({
     id: `new-video-${Date.now()}`,
-    title: "新加入：API 工具调用实战",
-    creator: "AI 工具观察",
-    duration: "06:18",
+    title: `${picked?.title || "本地视频"}（补充）`,
+    creator: picked?.creator || "本地素材",
+    duration: picked?.duration || "待识别",
     componentId,
-    tags: ["API", "工具调用"],
-    summary: "本地模拟加入的视频，展示添加到组件后的画布更新。",
-    reason: "它补齐了 API 接入到工具调用之间的实践缺口。",
-    progress: 0,
+    tags: picked?.tags || ["本地视频"],
+    summary: picked?.summary || "来自当前项目中的本地视频文件。",
+    reason: "它复用当前项目真实存在的视频文件，不新增虚构素材。",
+    progress: picked?.progress || 0,
     watched: false,
-    coverType: "new",
+    coverType: picked?.coverType || "local-copy",
+    coverImage: picked?.coverImage || "",
+    sourceUrl: picked?.sourceUrl || "",
+    fileName: picked?.fileName || "",
   });
   state.drawer = null;
   persist();
@@ -3057,17 +3359,11 @@ function addVideoToComponent() {
 
 function applyAgent() {
   const result = state.agentResult || fallbackAgentResult();
-  const wantsApi = result.changes.some((item) => /API|接口|Webhook|工具调用/i.test(item));
-  const wantsCompare = result.changes.some((item) => /对比|Claude/i.test(item));
-  const componentId = wantsCompare ? "compare" : wantsApi ? "api-plus" : "debug";
-  const componentName = wantsCompare ? "Codex vs Claude" : wantsApi ? "API 进阶" : "错误排查";
-  const componentColor = wantsCompare ? "#EEF8EA" : wantsApi ? "#F1EDFF" : "#EDF7FF";
-  const componentLine = wantsCompare ? "#83C9A8" : wantsApi ? "#8B7CF6" : "#69BFE7";
-  const videoTitles = wantsCompare
-    ? ["Codex 和 Claude 的协作边界", "两类 Agent 的适用场景", "模型选择的五个判断"]
-    : wantsApi
-      ? ["Webhook 触发知识更新", "API 工具调用实战", "接口成本与缓存策略"]
-      : ["常见路径问题定位", "依赖安装失败怎么办", "测试失败的最短排查路径"];
+  const componentId = "local-review";
+  const componentName = "本地素材复盘";
+  const componentColor = "#EDF7FF";
+  const componentLine = "#69BFE7";
+  const localVideos = state.videos.filter((video) => video.sourceUrl).slice(0, 3);
 
   if (!componentById(componentId)) {
     state.components.push({
@@ -3082,19 +3378,22 @@ function applyAgent() {
       excluded: false,
       desc: "由 Agent 根据你的指令新增的画布分支。",
     });
-    videoTitles.forEach((title, index) => {
+    localVideos.forEach((video, index) => {
       state.videos.push({
         id: `${componentId}-${Date.now()}-${index}`,
-        title,
-        creator: "Debug 小组",
-        duration: ["04:58", "06:22", "07:16"][index],
+        title: `${video.title}（复盘）`,
+        creator: video.creator || "本地素材",
+        duration: video.duration,
         componentId,
-        tags: [componentName, "Agent"],
-        summary: "Agent 建议新增的视频，用于补齐当前画布结构。",
-        reason: "它能让当前学习路线更完整、更适合继续学习。",
-        progress: 0,
+        tags: [...new Set([...(video.tags || []), componentName])],
+        summary: video.summary,
+        reason: "复用当前项目真实存在的视频文件，用于本地素材复盘。",
+        progress: video.progress || 0,
         watched: false,
-        coverType: `${componentId}-${index}`,
+        coverType: video.coverType || `${componentId}-${index}`,
+        coverImage: video.coverImage || "",
+        sourceUrl: video.sourceUrl || "",
+        fileName: video.fileName || "",
       });
     });
   }
@@ -3330,15 +3629,7 @@ function deleteActiveComponent() {
 }
 
 function reflowComponents() {
-  const center = { x: 380, y: 360 };
-  const radiusX = 226;
-  const radiusY = 258;
-  state.components.forEach((component, index) => {
-    const angle = (-90 + index * (360 / state.components.length)) * Math.PI / 180;
-    const pull = (component.weight - 70) * 0.45;
-    component.x = Math.round(center.x + Math.cos(angle) * (radiusX - pull) - 64);
-    component.y = Math.round(center.y + Math.sin(angle) * (radiusY - pull) - 36);
-  });
+  reflowComponentsForState(state);
   persist();
 }
 

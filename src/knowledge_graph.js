@@ -132,8 +132,10 @@ export function layoutGraphNodes(scoredVideos) {
 export function deriveCanvasTitle(query, activeTags = []) {
   const clean = cleanQuery(query)
   const tags = normalizeTags(activeTags)
+  const hasLocalVideo = ['本地视频', 'video-1', 'video-2', 'video-3'].some((token) => includesAny([clean, ...tags], token))
   const hasClaude = includesAny([clean, ...tags], 'Claude')
   const hasCodex = includesAny([clean, ...tags], 'Codex')
+  if (hasLocalVideo) return '本地视频素材'
   if (hasClaude) return 'AI Claude'
   if (hasCodex && tags.includes('Agent')) return 'Codex Agent'
   if (hasCodex) return 'Codex 路线'
@@ -165,11 +167,11 @@ export function resolvePlayableVideo(video, videos = []) {
 }
 
 export function cleanQuery(value) {
-  let query = String(value || '').trim() || 'Claude 学习路线图'
+  let query = String(value || '').trim() || '本地视频素材'
   STOP_WORDS.forEach((word) => {
     query = query.replaceAll(word, ' ')
   })
-  return query.replace(/\s+/g, ' ').trim() || 'Claude'
+  return query.replace(/\s+/g, ' ').trim() || '本地视频'
 }
 
 function buildBranches(videos) {
@@ -203,7 +205,7 @@ function deriveGraphTags(query, videos, activeTags, customTags, disabledTags) {
 function tokenize(value) {
   const text = String(value || '').replace(/[，。,.!?？：:；;]/g, ' ')
   const words = text.split(/\s+/).filter(Boolean)
-  const compactTokens = ['Claude', 'Codex', 'Agent', 'API', 'AI', 'IoT', 'RAG', 'Prompt'].filter((token) =>
+  const compactTokens = ['本地视频', 'video-1', 'video-2', 'video-3', 'Claude', 'Codex', 'Agent', 'API', 'AI', 'IoT', 'RAG', 'Prompt'].filter((token) =>
     text.toLowerCase().includes(token.toLowerCase())
   )
   return [...new Set([...compactTokens, ...words])]

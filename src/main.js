@@ -11,11 +11,11 @@ const app = document.querySelector('#app')
 const STORAGE_KEY = 'tikcanvas.savedCanvases'
 const WATCH_PROGRESS_KEY = 'tikcanvas.watchProgress'
 const TAG_PREFERENCES_KEY = 'tikcanvas.tagPreferences'
-const DEFAULT_CANVAS_QUERY = '帮我生成 Claude 的知识画布'
-const exampleQueries = ['帮我生成 Claude 的知识画布', 'Claude API Agent 自动化', 'Codex Agent 工程协作', 'Claude 到 IoT']
+const DEFAULT_CANVAS_QUERY = '整理本地视频素材'
+const exampleQueries = ['整理本地视频素材', '查看 video-1', '查看 video-2', '查看 video-3']
 
 const defaultTagPreferences = {
-  activeTags: ['Claude', 'API', 'Agent'],
+  activeTags: ['本地视频'],
   disabledTags: [],
   customTags: []
 }

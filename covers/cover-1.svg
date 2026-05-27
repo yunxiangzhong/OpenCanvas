@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+  <rect width="720" height="1280" fill="#12343b"/>
+  <rect x="48" y="72" width="624" height="1136" rx="28" fill="#1f6f78"/>
+  <text x="96" y="560" fill="#ffffff" font-family="Arial, sans-serif" font-size="76" font-weight="700">本地视频 1</text>
+  <text x="96" y="660" fill="#d9f7fa" font-family="Arial, sans-serif" font-size="34">videos/video-1.mp4</text>
+  <circle cx="360" cy="820" r="72" fill="#ffffff" opacity="0.9"/>
+  <path d="M340 780 L340 860 L410 820 Z" fill="#12343b"/>
+</svg>
