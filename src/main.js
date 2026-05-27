@@ -5,6 +5,7 @@ import {
   resolvePlayableVideo,
   updateWatchProgress
 } from './knowledge_graph.js'
+import { createKnowledgeCanvasApp } from './knowledgeCanvasApp.js'
 
 const app = document.querySelector('#app')
 const STORAGE_KEY = 'tikcanvas.savedCanvases'
@@ -35,9 +36,15 @@ const state = {
 
 state.currentCanvas = buildCurrentGraph({ id: 'canvas-default', save: false })
 
+let canvasAppInstance = null
+
 function render() {
   app.className = `app-shell view-${state.view}`
   if (state.view === 'video') {
+    if (canvasAppInstance) {
+      canvasAppInstance.destroy?.()
+      canvasAppInstance = null
+    }
     app.innerHTML = `
       <section class="phone-frame video-mode">
         ${renderVideoPage()}
@@ -47,12 +54,64 @@ function render() {
     return
   }
 
+  if (state.view === 'canvas') {
+    app.innerHTML = `
+      <section class="phone-frame">
+        ${renderStatusBar()}
+        ${renderHomeNav()}
+        <main class="phone-content canvas-mode-content">
+          <div class="knowledge-canvas-page is-embedded">
+            <div class="knowledge-canvas-app" id="knowledgeCanvasApp"></div>
+            <div class="toast" id="knowledgeCanvasToast" role="status" aria-live="polite"></div>
+          </div>
+        </main>
+      </section>
+    `
+    
+    const appEl = document.querySelector('#knowledgeCanvasApp')
+    const phoneEl = document.querySelector('.phone-frame')
+    const toastEl = document.querySelector('#knowledgeCanvasToast')
+    
+    if (appEl && phoneEl && toastEl) {
+      if (!canvasAppInstance) {
+        canvasAppInstance = createKnowledgeCanvasApp({
+          app: appEl,
+          phoneEl: phoneEl,
+          toastEl: toastEl,
+          embedded: true,
+          entryVideo: state.selectedVideo ? {
+            id: state.selectedVideo.id,
+            title: state.selectedVideo.title,
+            author: state.selectedVideo.author?.nickname || '',
+            description: state.selectedVideo.desc || state.selectedVideo.summary || '',
+            tags: state.selectedVideo.tags || [],
+            category: state.selectedVideo.knowledge?.branch || '',
+            poster: state.selectedVideo.video?.cover?.url_list?.[0] || ''
+          } : null,
+          onExit: () => {
+            canvasAppInstance?.destroy?.()
+            canvasAppInstance = null
+            state.view = 'recommend'
+            render()
+          }
+        })
+      }
+    }
+    bindEvents()
+    return
+  }
+
+  if (canvasAppInstance) {
+    canvasAppInstance.destroy?.()
+    canvasAppInstance = null
+  }
+
   app.innerHTML = `
     <section class="phone-frame">
       ${renderStatusBar()}
       ${renderHomeNav()}
       <main class="phone-content">
-        ${state.view === 'canvas' ? renderCanvasPage() : renderRecommendPage()}
+        ${renderRecommendPage()}
       </main>
     </section>
   `
