@@ -1,15 +1,16 @@
 :root {
   color-scheme: light;
-  --text: #16181d;
-  --muted: #7d8490;
-  --line: #e9edf5;
-  --soft: #f6f8fc;
-  --cyan: #19d7df;
-  --blue: #4f8df7;
-  --green: #70e0b0;
-  --pink: #ff7480;
-  --yellow: #ffd992;
-  --shadow: 0 18px 48px rgba(37, 51, 91, 0.14);
+  --text: #1C1917; /* Warm charcoal black */
+  --muted: #706F6C; /* Elegant desaturated grey */
+  --line: #E5E5E0; /* Warm subtle borders */
+  --soft: #F5F5F4; /* Premium warm background fill */
+  --cyan: #818CF8; /* Desaturated indigo */
+  --blue: #6366F1; /* Gemini slate-indigo blue */
+  --green: #84CC16; /* Clean olive-green highlight */
+  --pink: #F43F5E; /* Modern desaturated coral rose */
+  --yellow: #D97706; /* Claude warm rust/gold accent */
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.03); /* Subtle high-end lift shadow */
+  --font-sans: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -50,25 +51,262 @@ p {
   margin: 0;
 }
 
+/* Widescreen Desktop Shell */
 .app-shell {
   min-height: 100vh;
-  display: grid;
-  place-items: start center;
-  padding: 52px 14px 28px;
+  width: 100%;
+  display: block;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+  background: #F9F9F8 !important; /* Soft, warm white background like Claude */
 }
 
+/* Eliminate Simulated Phone Shell visually */
 .phone-frame {
-  width: min(100%, 423px);
-  min-height: 858px;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   position: relative;
   overflow: hidden;
-  border-radius: 38px;
-  background: #fff;
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.34);
+  background: transparent !important;
 }
 
 .phone-frame.video-mode {
-  background: #050505;
+  background: #F9F9F8 !important;
+}
+
+/* Desktop Unified Layout Container */
+.desktop-layout-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Claude/Gemini Premium Left Sidebar */
+.desktop-sidebar {
+  width: 260px;
+  flex: 0 0 260px;
+  background: #191919; /* High-end dark sidebar like Claude */
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 24px 16px;
+  z-index: 1000;
+  font-family: "PingFang SC", -apple-system, sans-serif;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  margin-bottom: 24px;
+}
+
+.siri-logo-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #83d6ef 0%, #8b7cf6 60%, #ff7a7a 100%);
+  box-shadow: 0 0 10px rgba(139, 124, 246, 0.6);
+}
+
+.sidebar-brand strong {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
+}
+
+.new-canvas-sidebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 24px;
+}
+
+.new-canvas-sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-item.active {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+}
+
+.sidebar-history-section {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 24px;
+  scrollbar-width: none;
+}
+
+.sidebar-history-section::-webkit-scrollbar {
+  display: none;
+}
+
+.history-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  padding-left: 12px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.history-item.active {
+  background: rgba(110, 68, 255, 0.15) !important;
+  color: #FFFFFF !important;
+}
+
+.history-empty {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  padding: 12px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 16px;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6E44FF 0%, #8B5CF6 100%);
+  color: #FFFFFF;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-info strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-info span {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.desktop-main-content {
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+  background: #F9F9F8;
+  position: relative;
+}
+
+.phone-content.canvas-mode-content {
+  width: 100% !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.phone-content {
+  height: 100vh !important;
+  overflow: auto;
 }
 
 .status-bar {

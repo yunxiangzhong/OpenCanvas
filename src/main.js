@@ -39,44 +39,51 @@ state.currentCanvas = buildCurrentGraph({ id: 'canvas-default', save: false })
 let canvasAppInstance = null
 
 function render() {
-  app.className = `app-shell view-${state.view}`
+  app.className = `app-shell view-${state.view}`;
+  
+  let mainContent = '';
   if (state.view === 'video') {
     if (canvasAppInstance) {
-      canvasAppInstance.destroy?.()
-      canvasAppInstance = null
+      canvasAppInstance.destroy?.();
+      canvasAppInstance = null;
     }
-    app.innerHTML = `
-      <section class="phone-frame video-mode">
-        ${renderVideoPage()}
-      </section>
-    `
-    bindEvents()
-    return
+    mainContent = renderVideoPage();
+  } else if (state.view === 'canvas') {
+    mainContent = `
+      <div class="knowledge-canvas-page is-embedded">
+        <div class="knowledge-canvas-app" id="knowledgeCanvasApp"></div>
+        <div class="toast" id="knowledgeCanvasToast" role="status" aria-live="polite"></div>
+      </div>
+    `;
+  } else {
+    if (canvasAppInstance) {
+      canvasAppInstance.destroy?.();
+      canvasAppInstance = null;
+    }
+    mainContent = renderRecommendPage();
   }
 
+  // Render unified Desktop Sidebar Layout
+  app.innerHTML = `
+    <div class="desktop-layout-container">
+      ${renderSidebar()}
+      <main class="desktop-main-content">
+        ${mainContent}
+      </main>
+    </div>
+  `;
+
+  // Mount embedded canvas application if active
   if (state.view === 'canvas') {
-    app.innerHTML = `
-      <section class="phone-frame">
-        ${renderStatusBar()}
-        ${renderHomeNav()}
-        <main class="phone-content canvas-mode-content">
-          <div class="knowledge-canvas-page is-embedded">
-            <div class="knowledge-canvas-app" id="knowledgeCanvasApp"></div>
-            <div class="toast" id="knowledgeCanvasToast" role="status" aria-live="polite"></div>
-          </div>
-        </main>
-      </section>
-    `
+    const appEl = document.querySelector('#knowledgeCanvasApp');
+    const toastEl = document.querySelector('#knowledgeCanvasToast');
+    const workspaceEl = document.querySelector('.desktop-main-content');
     
-    const appEl = document.querySelector('#knowledgeCanvasApp')
-    const phoneEl = document.querySelector('.phone-frame')
-    const toastEl = document.querySelector('#knowledgeCanvasToast')
-    
-    if (appEl && phoneEl && toastEl) {
+    if (appEl && toastEl && workspaceEl) {
       if (!canvasAppInstance) {
         canvasAppInstance = createKnowledgeCanvasApp({
           app: appEl,
-          phoneEl: phoneEl,
+          phoneEl: workspaceEl, // Using widescreen content panel as phoneEl fallback
           toastEl: toastEl,
           embedded: true,
           entryVideo: state.selectedVideo ? {
@@ -89,61 +96,71 @@ function render() {
             poster: state.selectedVideo.video?.cover?.url_list?.[0] || ''
           } : null,
           onExit: () => {
-            canvasAppInstance?.destroy?.()
-            canvasAppInstance = null
-            state.view = 'recommend'
-            render()
+            canvasAppInstance?.destroy?.();
+            canvasAppInstance = null;
+            state.view = 'recommend';
+            render();
           }
-        })
+        });
       }
     }
-    bindEvents()
-    return
   }
 
-  if (canvasAppInstance) {
-    canvasAppInstance.destroy?.()
-    canvasAppInstance = null
-  }
-
-  app.innerHTML = `
-    <section class="phone-frame">
-      ${renderStatusBar()}
-      ${renderHomeNav()}
-      <main class="phone-content">
-        ${renderRecommendPage()}
-      </main>
-    </section>
-  `
-  bindEvents()
+  bindEvents();
 }
 
-function renderStatusBar() {
+function renderSidebar() {
+  const savedItems = state.savedCanvases.slice(0, 6);
   return `
-    <div class="status-bar">
-      <strong>15:42</strong>
-      <div class="status-icons" aria-hidden="true">
-        <span class="signal"></span>
-        <span>5G</span>
-        <span class="battery">5</span>
+    <aside class="desktop-sidebar">
+      <div class="sidebar-brand">
+        <div class="siri-logo-indicator animate-pulse"></div>
+        <strong>OpenCanvas AI</strong>
       </div>
-    </div>
-  `
-}
-
-function renderHomeNav() {
-  return `
-    <header class="home-nav">
-      <button class="icon-button" type="button" aria-label="菜单">
-        <span></span><span></span><span></span>
+      <button class="new-canvas-sidebar-btn" type="button" data-sidebar-tab="canvas-landing">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>新建画布</span>
       </button>
-      <nav class="home-tabs" aria-label="首页频道">
-        <button class="${state.view === 'recommend' ? 'active' : ''}" type="button" data-view="recommend">热门</button>
-        <button class="${state.view === 'canvas' ? 'active' : ''}" type="button" data-view="canvas">知识画布</button>
+      <nav class="sidebar-nav">
+        <button class="nav-item ${state.view === 'canvas' && state.canvasMode === 'landing' ? 'active' : ''}" type="button" data-sidebar-tab="canvas-landing">
+          <span class="nav-icon">🔍</span>
+          <span>AI 探索</span>
+        </button>
+        <button class="nav-item ${state.view === 'recommend' ? 'active' : ''}" type="button" data-sidebar-tab="feed">
+          <span class="nav-icon">🔥</span>
+          <span>热门推荐</span>
+        </button>
+        <button class="nav-item ${state.view === 'canvas' && state.canvasMode === 'library' ? 'active' : ''}" type="button" data-sidebar-tab="library">
+          <span class="nav-icon">📚</span>
+          <span>我的画布</span>
+        </button>
       </nav>
-      <button class="search-button" type="button" aria-label="搜索" data-action="focus-search"></button>
-    </header>
-  `
+      <div class="sidebar-history-section">
+        <div class="history-title">最近探索</div>
+        <div class="history-list">
+          ${savedItems.map(item => `
+            <button class="history-item ${state.currentCanvas && state.currentCanvas.id === item.id && state.canvasMode === 'board' && state.view === 'canvas' ? 'active' : ''}" type="button" data-action="load-canvas" data-canvas-id="${escapeAttribute(item.id)}">
+              <span class="history-icon">🗺️</span>
+              <span class="history-text">${escapeHtml(item.title)}</span>
+            </button>
+          `).join('')}
+          ${!savedItems.length ? '<div class="history-empty">暂无保存画布</div>' : ''}
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="user-avatar">HQ</div>
+          <div class="user-info">
+            <strong>HanQi</strong>
+            <span>团队成员</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  `;
 }
 
 function renderRecommendPage() {
@@ -205,15 +222,15 @@ function renderCanvasLanding() {
   return `
     <section class="canvas-home">
       <div class="canvas-hero">
-        <p>TikCanvas 精选</p>
-        <h1>把碎片视频整理成一张可探索的知识画布</h1>
-        <span>搜索一个主题，系统会把强相关视频放在中心，把远端知识放到外圈，像 Figma 一样保存和继续探索。</span>
+        <p>OpenCanvas 精选</p>
+        <h1>把多媒体文件整理成一张可探索的知识画布</h1>
+        <span>搜索一个主题，系统会把强相关文件放在中心，把远端知识放到外圈，像 Figma 一样保存和继续探索。</span>
       </div>
       <article class="current-canvas-card">
         <div>
           <small>当前画布</small>
           <h2>${escapeHtml(canvas.title)}</h2>
-          <p>已探索 ${canvas.progress}% · 已看 ${canvas.watched} / ${canvas.total} 个视频</p>
+          <p>已探索 ${canvas.progress}% · 已学 ${canvas.watched} / ${canvas.total} 个文件块</p>
         </div>
         <button type="button" data-action="enter-current-canvas">进入</button>
         <div class="canvas-skeleton" aria-hidden="true">
@@ -234,7 +251,7 @@ function renderCanvasLanding() {
       <div class="canvas-home-actions">
         <button class="primary" type="button" data-action="new-canvas">重排画布</button>
         <button type="button" data-action="show-library">我的画布</button>
-        <button type="button" data-action="canvas-from-video">从视频进入</button>
+        <button type="button" data-action="canvas-from-video">从文件块进入</button>
       </div>
     </section>
   `
@@ -378,53 +395,133 @@ function renderVideoPage() {
   const video = state.selectedVideo || slideRecommend[0]
   const progress = getVideoProgress(video.id)
   const progressPercent = Math.round(progress.progress * 100)
+  
   return `
-    <section class="video-detail-page">
-      <video
-        class="detail-video"
-        src="${escapeAttribute(video.video.play_addr.url_list[0])}"
-        preload="metadata"
-        playsinline
-        webkit-playsinline
-        controls
-      ></video>
-      <div class="video-gradient"></div>
-      <header class="video-topbar">
-        <button class="video-back" type="button" data-action="back-from-video" aria-label="返回">‹</button>
-        <div class="video-search">
-          <span>${escapeHtml(state.currentCanvas.title)}</span>
-          <b>${escapeHtml(statusText(progress.status))}</b>
+    <section class="screen video-screen desktop-video-dashboard">
+      <!-- Left Side: Wide Video Player Block -->
+      <div class="desktop-player-column">
+        <div class="desktop-player-container">
+          <video
+            class="detail-video"
+            src="${escapeAttribute(video.video.play_addr.url_list[0])}"
+            preload="metadata"
+            playsinline
+            webkit-playsinline
+            controls
+          ></video>
         </div>
-      </header>
-      <button class="video-play-toggle ${state.isPlaying ? 'is-playing' : ''}" type="button" data-action="toggle-video-play" aria-label="播放或暂停">
-        ${state.isPlaying ? 'Ⅱ' : '▶'}
-      </button>
-      <aside class="video-actions" aria-label="视频操作">
-        <button type="button">♡<small>${formatNumber(video.statistics.digg_count)}</small></button>
-        <button type="button">评<small>158</small></button>
-        <button type="button">进<small>${progressPercent}%</small></button>
-        <button type="button">图<small>画布</small></button>
-      </aside>
-      <section class="video-info-panel">
-        <div class="creator-row">
-          <span class="avatar">${escapeHtml(video.author.nickname.slice(0, 1))}</span>
-          <strong>@${escapeHtml(video.author.nickname.replaceAll(' ', '_'))}</strong>
-          <button type="button">关注</button>
+      </div>
+      
+      <!-- Right Side: AI Learning Sidebar Panel -->
+      <div class="desktop-details-column">
+        <header class="dashboard-header">
+          <button class="icon-btn back-to-canvas-btn" type="button" data-action="back-from-video">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>返回推荐</span>
+          </button>
+          <span class="dashboard-path-text">${escapeHtml(state.currentCanvas.title)} &gt; 详情页</span>
+        </header>
+        
+        <div class="dashboard-scrollable-content">
+          <div class="dashboard-video-meta-section">
+            <div class="dashboard-creator-row">
+              <span class="avatar">${escapeHtml(video.author.nickname.slice(0, 1))}</span>
+              <strong>@${escapeHtml(video.author.nickname.replaceAll(' ', '_'))}</strong>
+              <button class="follow-btn" type="button">关注</button>
+            </div>
+            <h1 class="dashboard-video-title">${escapeHtml(video.desc)}</h1>
+            
+            <div class="dashboard-ai-notes">
+              <div class="notes-header">🤖 AI 知识提炼与大纲</div>
+              <p>${escapeHtml(video.summary || "正在进行智能提炼...")}</p>
+              <p style="margin-top: 8px;">这是一份 AI 从当前媒体内容提取的核心学习文件，包含了详细的概念分支、实用案例以及行动指南。您可以在画布上随时追踪各个节点的学习进度，并在补充区插入更多的文件与链接，打造专属的知识整理工作台。</p>
+            </div>
+          </div>
+          
+          <div class="dashboard-progress-section">
+            <div class="progress-info">
+              <strong>当前内容学习进度</strong>
+              <span>${progressPercent}% 已看完</span>
+            </div>
+            <div class="dashboard-progress-track">
+              <span style="width: ${progressPercent}%"></span>
+            </div>
+          </div>
+          
+          <div class="dashboard-file-attachment-section">
+            <div class="attachment-header">📎 附件与关联文件</div>
+            <div class="attachment-list">
+              <div class="attachment-item">
+                <span class="attachment-icon">📁</span>
+                <div class="attachment-details">
+                  <strong>相关学习素材文档.pdf</strong>
+                  <span>文档文件 · 1.2 MB</span>
+                </div>
+                <button class="attachment-download-btn" type="button">打开</button>
+              </div>
+            </div>
+            <button class="add-attachment-btn" type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>插入关联链接或各类学习文件</span>
+            </button>
+          </div>
         </div>
-        <h1>${escapeHtml(video.desc)}</h1>
-        <p>${escapeHtml(video.summary)}</p>
-        <div class="video-tags">${video.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
-        <div class="watch-meter"><span style="width:${progressPercent}%"></span></div>
-        <div class="video-page-actions">
-          <button class="light-action" type="button" data-action="next-video">继续下一个</button>
-          <button class="canvas-action" type="button" data-action="open-canvas-from-video">进入知识画布</button>
-        </div>
-      </section>
+        
+        <footer class="dashboard-footer-actions">
+          <button class="primary-btn dashboard-action-btn" type="button" data-action="next-video">继续下一个</button>
+          <button class="secondary-btn dashboard-action-btn" type="button" data-action="open-canvas-from-video">进入知识画布</button>
+        </footer>
+      </div>
     </section>
-  `
+  `;
 }
 
 function bindEvents() {
+  // Sidebar tab click handler
+  app.querySelectorAll('[data-sidebar-tab]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.sidebarTab;
+      if (tab === 'canvas-landing') {
+        state.view = 'canvas';
+        state.canvasMode = 'landing';
+        render();
+        if (canvasAppInstance) canvasAppInstance.navigate('home');
+      } else if (tab === 'library') {
+        state.view = 'canvas';
+        state.canvasMode = 'library';
+        render();
+        if (canvasAppInstance) canvasAppInstance.navigate('library');
+      } else if (tab === 'feed') {
+        state.view = 'recommend';
+        render();
+      }
+    });
+  });
+
+  // History load canvas click handler
+  app.querySelectorAll('[data-action="load-canvas"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.canvasId;
+      const canvas = state.savedCanvases.find((item) => item.id === id) || state.currentCanvas;
+      state.canvasQuery = canvas.topic || state.canvasQuery;
+      state.hiddenVideoIds = canvas.hiddenVideoIds || [];
+      state.currentCanvas = canvas.branches && canvas.videos ? canvas : buildCurrentGraph({ id: canvas.id, createdAt: canvas.createdAt });
+      state.canvasMode = 'board';
+      state.view = 'canvas';
+      render();
+      if (canvasAppInstance) {
+        canvasAppInstance.openFromVideo({ id: canvas.id }, { silent: true });
+        canvasAppInstance.navigate('canvas');
+      }
+    });
+  });
+
   app.querySelectorAll('[data-view]').forEach((button) => {
     button.addEventListener('click', () => {
       state.view = button.dataset.view
